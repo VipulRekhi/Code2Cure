@@ -1,0 +1,41 @@
+/* ==============================================================================
+   MediKiosk Accessibility Enhancements
+   ============================================================================== */
+
+/* Screen Reader Only Utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced Motion Mode */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High Contrast Override */
+body.high-contrast {
+  --background: #000000;
+  --surface: #121212;
+  --surface-subtle: #1e1e1e;
+  --text: #ffffff;
+  --text-secondary: #e2e8f0;
+  --muted-text: #cbd5e1;
+  --border: #ffffff;
+  --border-subtle: #94a3b8;
+  --primary: #4ade80;
+  --primary-bg: #052e16;
+  --primary-contrast: #000000;
+}

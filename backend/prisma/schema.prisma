@@ -1,0 +1,171 @@
+// ==========================================
+// Prisma Schema Definition for MediKiosk
+// Phase 3: Clinical Ontology & Sessions
+// ==========================================
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABORTED
+}
+
+enum PresenceStatus {
+  PRESENT
+  ABSENT
+  UNKNOWN
+  NOT_PROVIDED
+  DECLINED
+}
+
+enum ResponseInputMethod {
+  TOUCH
+  VOICE
+  TEXT
+}
+
+enum DataProvenance {
+  PATIENT_TOUCH
+  PATIENT_VOICE
+  PATIENT_TEXT
+  PHYSICIAN_VERIFIED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(PATIENT)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  patient      Patient?
+  doctor       Doctor?
+
+  @@map("users")
+}
+
+model Patient {
+  id                String            @id @default(uuid())
+  userId            String            @unique
+  patientIdentifier String            @unique
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime?
+  phone             String?
+  preferredLanguage String            @default("HI")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consents          Consent[]
+  clinicalSessions  ClinicalSession[]
+
+  @@map("patients")
+}
+
+model Doctor {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  name           String
+  specialization String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("doctors")
+}
+
+model Consent {
+  id          String    @id @default(uuid())
+  patientId   String
+  consentType String    // e.g. "GENERAL_INTAKE", "VOICE_RECORDING", "DATA_PROCESSING"
+  version     String    @default("1.0")
+  granted     Boolean   @default(true)
+  grantedAt   DateTime  @default(now())
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@map("consents")
+}
+
+// ------------------------------------------
+// Phase 3: Clinical Session & Intake Storage
+// ------------------------------------------
+
+model ClinicalSession {
+  id                String             @id @default(uuid())
+  patientId         String?
+  language          String             @default("mr")
+  opdMode           String             @default("GENERAL") // "GENERAL" | "AYUSH" | "OTHER"
+  status            SessionStatus      @default(IN_PROGRESS)
+  currentQuestionId String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  patient           Patient?           @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  responses         QuestionResponse[]
+  facts             ClinicalFact[]
+
+  @@index([patientId])
+  @@map("clinical_sessions")
+}
+
+model QuestionResponse {
+  id              String              @id @default(uuid())
+  sessionId       String
+  questionId      String
+  rawResponse     Json?
+  normalizedValue Json?
+  inputMethod     ResponseInputMethod @default(TOUCH)
+  language        String              @default("mr")
+  source          DataProvenance      @default(PATIENT_TOUCH)
+  confidence      Float?
+  status          PresenceStatus      @default(PRESENT)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  session         ClinicalSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([questionId])
+  @@map("question_responses")
+}
+
+model ClinicalFact {
+  id              String              @id @default(uuid())
+  sessionId       String
+  concept         String              // e.g. "symptom.pain.chest", "symptom.fever"
+  attribute       String?             // e.g. "duration", "severity", "character"
+  value           Json?
+  unit            String?             // e.g. "days", "hours"
+  status          PresenceStatus      @default(PRESENT)
+  source          DataProvenance      @default(PATIENT_TOUCH)
+  confidence      Float?
+  recordedAt      DateTime            @default(now())
+
+  session         ClinicalSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([concept])
+  @@map("clinical_facts")
+}

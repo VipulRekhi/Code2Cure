@@ -1,0 +1,54 @@
+/* ==============================================================================
+   MediKiosk Kiosk Responsive Rules
+   Optimized for 16:9 Landscape displays (1920x1080, 1366x768) + tablets.
+   ============================================================================== */
+
+@media (max-width: 1280px) {
+  :root {
+    --font-size-2xl: 2.25rem;
+    --font-size-hero: 2.75rem;
+  }
+
+  .screen-card {
+    padding: 2rem 2.5rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .lang-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .kiosk-header {
+    padding: 0 1.5rem;
+  }
+
+  .kiosk-stage {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-height: 800px) {
+  .kiosk-header {
+    height: 68px;
+  }
+
+  .kiosk-footer {
+    height: 80px;
+  }
+
+  .kiosk-stage {
+    padding: 1rem 2rem;
+  }
+
+  .screen-card {
+    padding: 1.75rem 2.5rem;
+  }
+
+  .voice-mic-button {
+    width: 90px;
+    height: 90px;
+    font-size: 2.5rem;
+  }
+}

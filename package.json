@@ -1,0 +1,31 @@
+{
+  "name": "medikiosk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MediKiosk — Patient Case-Taking Software (SIH 2026)",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test",
+    "test": "npm run test:backend && npm run test:frontend",
+    "db:migrate": "npm --prefix backend run db:migrate",
+    "db:seed": "npm --prefix backend run db:seed",
+    "db:studio": "npm --prefix backend run db:studio"
+  },
+  "keywords": [
+    "medikiosk",
+    "sih2026",
+    "healthcare",
+    "clinical-kiosk"
+  ],
+  "author": "MediKiosk Team",
+  "license": "MIT"
+}

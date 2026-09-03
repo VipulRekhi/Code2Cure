@@ -1,0 +1,67 @@
+/* ==============================================================================
+   MediKiosk Kiosk Design Tokens & Variables
+   Healthcare aesthetic: calm, trustworthy, high-contrast, accessible.
+   ============================================================================== */
+
+:root {
+  /* Brand & Primary Palette */
+  --primary: #15803d;             /* Trustworthy Forest Green */
+  --primary-light: #22c55e;
+  --primary-dark: #166534;
+  --primary-bg: #f0fdf4;
+  --primary-contrast: #ffffff;
+
+  /* Surfaces & Canvas */
+  --background: #f8fafc;          /* Calm off-white / slate-50 */
+  --surface: #ffffff;             /* Crisp white surface */
+  --surface-subtle: #f1f5f9;      /* Light gray container background */
+  --surface-elevated: #ffffff;
+
+  /* Typography Colors */
+  --text: #0f172a;                /* Deep slate-900 for maximum readability */
+  --text-secondary: #334155;      /* Slate-700 */
+  --muted-text: #64748b;          /* Slate-500 */
+  --border: #cbd5e1;              /* Slate-300 accessible boundary */
+  --border-subtle: #e2e8f0;       /* Slate-200 */
+
+  /* Healthcare Semantic Signals */
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --danger: #dc2626;              /* Reserved strictly for urgent errors/red-flags */
+  --danger-bg: #fee2e2;
+  --info: #0284c7;
+  --info-bg: #e0f2fe;
+
+  /* Kiosk Touch Target Metrics */
+  --touch-min: 48px;              /* Minimum accessibility baseline */
+  --touch-standard: 64px;         /* Standard interactive button height */
+  --touch-large: 84px;            /* Primary CTA / major touch cards */
+  --touch-huge: 104px;            /* Big language / mode selection tiles */
+
+  /* Typography Scale */
+  --font-family: 'Noto Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 1rem;           /* 16px (minimum for kiosk distance) */
+  --font-size-sm: 1.125rem;       /* 18px */
+  --font-size-base: 1.25rem;      /* 20px */
+  --font-size-md: 1.5rem;         /* 24px */
+  --font-size-lg: 1.875rem;       /* 30px */
+  --font-size-xl: 2.25rem;        /* 36px */
+  --font-size-2xl: 2.75rem;       /* 44px */
+  --font-size-hero: 3.25rem;      /* 52px */
+
+  /* Radii & Shadows */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+
+  /* Animation Timings */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 250ms ease;
+}

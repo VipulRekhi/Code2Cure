@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="MediKiosk - Multilingual Self-Service Clinical Intake & Triage Kiosk (SIH26047)" />
+    <title>MediKiosk — Patient Self-Service Kiosk</title>
+
+    <!-- Google Fonts for Latin and Devanagari (Hindi & Marathi) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700;800&family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- MediKiosk Modular Kiosk Stylesheets -->
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/kiosk.css" />
+    <link rel="stylesheet" href="css/accessibility.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+  </head>
+  <body>
+    <div id="kiosk-app" role="application" aria-label="MediKiosk Patient Intake System">
+      <!-- 1. Header (Rendered dynamically) -->
+      <header id="kiosk-header" class="kiosk-header" role="banner"></header>
+
+      <!-- 2. Progress Indicator (Rendered dynamically) -->
+      <nav id="kiosk-progress" class="kiosk-progress-container" aria-label="Intake Progress"></nav>
+
+      <!-- 3. Main Stage Screen (Rendered dynamically) -->
+      <main id="kiosk-stage" class="kiosk-stage" role="main" tabIndex="-1"></main>
+
+      <!-- 4. Footer Action Bar (Rendered dynamically) -->
+      <footer id="kiosk-footer" class="kiosk-footer" role="contentinfo"></footer>
+    </div>
+
+    <!-- Global Modal Mount Point (Help, Confirmation) -->
+    <div id="modal-container" aria-live="polite"></div>
+
+    <!-- Vanilla JavaScript Module Entrypoint -->
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

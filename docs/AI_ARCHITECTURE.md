@@ -1,0 +1,137 @@
+# AI Architecture & Model Strategy — MediKiosk
+
+**Document Version:** 1.0.0 (Phase 0 Baseline)  
+**Date:** September 2026  
+
+---
+
+## 1. Open-Source AI Strategy & Model Selections
+
+MediKiosk is architected around **sovereign, open-weight, self-hostable AI models**. No patient-identifiable healthcare data is transmitted to third-party commercial cloud APIs.
+
+| AI Domain | Selected Open-Source Model | Hosting / Runtime Technology | Primary Clinical & System Tasks |
+| :--- | :--- | :--- | :--- |
+| **Large Language Model (LLM)** | **Qwen2.5-7B-Instruct** (Alibaba Cloud / Open Weights) | vLLM / Ollama (4-bit/8-bit AWQ or GGUF) | • Structured clinical slot extraction<br>• Vernacular question phrasing<br>• Medical document entity extraction<br>• SOAP-style clinical summary generation |
+| **Speech-to-Text (ASR)** | **AI4Bharat IndicConformer** | PyTorch / FastAPI / ONNX Runtime | • End-to-end vernacular speech transcription<br>• Baseline: Hindi, Marathi, English<br>• High noise-robustness for Indian accents |
+| **Text-to-Speech (TTS)** | **AI4Bharat IndicF5** | PyTorch / FastAPI / Triton | • Natural-sounding multilingual audio prompt synthesis<br>• Empathetic tone for low-literacy patient guidance |
+| **Optical Character Recognition (OCR)** | **PaddleOCR (PP-OCRv4 / PP-Structure)** | PaddlePaddle Python API / ONNX | • Layout analysis (tables, prescription headers)<br>• Text line detection & recognition on printed/semi-handwritten records |
+
+---
+
+## 2. Pluggable AI Service Abstraction Layer
+
+To ensure the Node.js/Express backend never becomes tightly coupled to a specific inference engine, all AI services implement strict TypeScript abstraction interfaces:
+
+```typescript
+// 1. LLM Provider Abstraction
+export interface LLMCompletionOptions {
+  temperature?: number;
+  maxTokens?: number;
+  responseFormat?: "json_object" | "text";
+  systemPrompt?: string;
+}
+
+export interface ILLMProvider {
+  name: string;
+  isAvailable(): Promise<boolean>;
+  generateText(prompt: string, options?: LLMCompletionOptions): Promise<string>;
+  extractJson<T>(prompt: string, jsonSchema: object, options?: LLMCompletionOptions): Promise<T>;
+}
+
+// 2. ASR Provider Abstraction
+export interface TranscriptionResult {
+  transcript: string;
+  confidence: number;
+  detectedLanguage: string;
+  audioDurationSeconds: number;
+}
+
+export interface IASRProvider {
+  name: string;
+  isAvailable(): Promise<boolean>;
+  transcribeAudio(audioBuffer: Buffer, languageCode: "en" | "hi" | "mr"): Promise<TranscriptionResult>;
+}
+
+// 3. TTS Provider Abstraction
+export interface SynthesisResult {
+  audioBuffer: Buffer;
+  mimeType: "audio/wav" | "audio/mp3";
+  sampleRate: number;
+}
+
+export interface ITTSProvider {
+  name: string;
+  isAvailable(): Promise<boolean>;
+  synthesizeSpeech(text: string, languageCode: "en" | "hi" | "mr", gender?: "MALE" | "FEMALE"): Promise<SynthesisResult>;
+}
+
+// 4. OCR Provider Abstraction
+export interface OCRTextBlock {
+  text: string;
+  confidence: number;
+  boundingBox: {
+    xMin: number;
+    yMin: number;
+    xMax: number;
+    yMax: number;
+  };
+  pageNumber: number;
+}
+
+export interface OCRResult {
+  rawText: string;
+  blocks: OCRTextBlock[];
+  detectedOrientation: number;
+  processingTimeMs: number;
+}
+
+export interface IOCRProvider {
+  name: string;
+  isAvailable(): Promise<boolean>;
+  extractText(fileBuffer: Buffer, mimeType: string): Promise<OCRResult>;
+}
+```
+
+---
+
+## 3. Provider Implementations Architecture
+
+```
+[Express.js AI Module]
+        |
+        +---> ILLMProvider ------------> QwenLocalProvider (via vLLM / OpenAI-compatible API)
+        |
+        +---> IASRProvider ------------> IndicConformerProvider (via FastAPI sidecar)
+        |
+        +---> ITTSProvider ------------> IndicF5Provider (via FastAPI sidecar)
+        |
+        +---> IOCRProvider ------------> PaddleOCRProvider (via Python sidecar)
+```
+
+Each provider adapter includes:
+- **Health Check & Circuit Breakers:** Graceful fallbacks if the local GPU worker or container is restarting.
+- **Mock Implementations:** Deterministic mock providers for zero-GPU unit testing and CI/CD pipelines.
+- **Latency & Error Instrumentation:** Logging of token counts, inference times, and confidence distributions.
+
+---
+
+## 4. Prompt Engineering & Guardrail Framework
+
+### 4.1 Strict JSON Mode with Schema Enforcement
+All LLM information extraction tasks use constrained schema prompts with strict Zod validation at the Node.js layer. If an LLM response violates schema or outputs invalid JSON, it automatically retries with a repair prompt.
+
+### 4.2 Medical Fact Grounding Rules (Zero-Hallucination Policy)
+1. **Never Invent Medical Facts:** If an extracted document or patient transcript does not explicitly contain a dosage, frequency, or diagnosis, the LLM MUST set the field to `null` or `"UNKNOWN"`.
+2. **Explicit Provenance Inclusion:** Every extracted JSON object generated by the LLM is stamped with `sourceModel: "qwen2.5-7b-instruct"` and `provenance: "AI_EXTRACTED"`.
+3. **Draft Summary Guardrails:** All generated clinical summaries prefix the document with:
+   > *"PROVISIONAL DRAFT GENERATED BY MEDIKIOSK AI. REQUIRES LICENSED PHYSICIAN VERIFICATION BEFORE CLINICAL ACTION."*
+
+---
+
+## 5. Hardware Sizing & Deployment Profiles
+
+| Deployment Profile | Target Hardware | LLM Quantization | Concurrent Kiosks | Est. Latency |
+| :--- | :--- | :--- | :--- | :--- |
+| **Standard Edge Workstation** | 1x NVIDIA RTX 4090 (24GB VRAM) + 32GB RAM | Qwen2.5-7B AWQ (4-bit) | 4–6 terminals | LLM TTFT: ~80ms<br>ASR: ~600ms |
+| **Institutional Hospital Server** | 2x NVIDIA A5000 / L40S (48–96GB VRAM) | Qwen2.5-7B FP16 / 8-bit | 20+ terminals | LLM TTFT: ~40ms<br>ASR: ~300ms |
+| **Development / CPU Fallback** | Modern 8-core x86_64 CPU + 32GB RAM | Qwen2.5-7B GGUF Q4_K_M via Ollama CPU | 1 terminal (Dev mode) | LLM TTFT: ~800ms<br>ASR: ~2.5s |
