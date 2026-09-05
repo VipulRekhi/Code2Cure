@@ -80,4 +80,56 @@ export const api = {
       return { success: false, error: error.message };
     }
   },
+
+  async getClinicalSummary(sessionId) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/summary`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to fetch clinical summary:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ----------------------------------------------------
+  // Phase 5: Multilingual Voice Pipeline (ASR & TTS)
+  // ----------------------------------------------------
+  async transcribeAudio({ audioBase64, language = 'mr', sessionId = null, questionId = null }) {
+    try {
+      const response = await fetch(`${API_BASE}/voice/asr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioBase64, language, sessionId, questionId }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Voice ASR transcription request failed:', error);
+      return { success: false, error: error.message, fallbackToTouch: true };
+    }
+  },
+
+  async synthesizeSpeech({ text, language = 'mr', questionId = null }) {
+    try {
+      const response = await fetch(`${API_BASE}/voice/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language, questionId }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Voice TTS synthesis request failed:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getVoiceStatus() {
+    try {
+      const response = await fetch(`${API_BASE}/voice/status`);
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
 };
+
+

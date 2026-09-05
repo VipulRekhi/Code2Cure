@@ -70,4 +70,78 @@ describe('MediKiosk Phase 3 Clinical REST API Test Suite', () => {
     expect(res.body.data.completed).toBeGreaterThan(0);
     expect(res.body.data.percentage).toBeGreaterThan(0);
   });
+
+  it('GET /api/clinical/sessions/:id/summary should return normalized summary and persist clinical facts', async () => {
+    // Record location and duration
+    await request(app)
+      .post(`/api/clinical/sessions/${sessionId}/responses`)
+      .send({
+        questionId: 'q.pain.location',
+        rawResponse: 'chest',
+        normalizedValue: 'chest',
+        inputMethod: 'TOUCH',
+        language: 'mr',
+      });
+
+    await request(app)
+      .post(`/api/clinical/sessions/${sessionId}/responses`)
+      .send({
+        questionId: 'q.pain.duration',
+        rawResponse: { amount: 3, unit: 'days' },
+        normalizedValue: { amount: 3, unit: 'days' },
+        inputMethod: 'TOUCH',
+        language: 'mr',
+      });
+
+    const res = await request(app).get(`/api/clinical/sessions/${sessionId}/summary`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.sessionId).toBe(sessionId);
+    expect(res.body.data.primaryConcern).toBe('pain');
+    expect(res.body.data.location).toBe('chest');
+    expect(res.body.data.duration).toEqual({ value: 3, unit: 'days' });
+  });
+
+  it('verifies strict session isolation: Session A chest pain does NOT leak into Session B vomiting summary', async () => {
+    // Initialize Session B
+    const sessionBInit = await request(app)
+      .post('/api/clinical/sessions')
+      .send({ language: 'mr', opdMode: 'GENERAL' });
+    const sessionBId = sessionBInit.body.data.sessionId;
+
+    // Session B records stomach complaint
+    await request(app)
+      .post(`/api/clinical/sessions/${sessionBId}/responses`)
+      .send({
+        questionId: 'q.chief_complaint',
+        rawResponse: 'stomach',
+        normalizedValue: 'stomach',
+        inputMethod: 'TOUCH',
+        language: 'mr',
+      });
+
+    // Session B records voice response for vomiting
+    await request(app)
+      .post(`/api/clinical/sessions/${sessionBId}/responses`)
+      .send({
+        questionId: 'q.chief_complaint',
+        rawResponse: 'मला तीन दिवसांपासून रोज उलटी होत आहे',
+        inputMethod: 'VOICE',
+        language: 'mr',
+      });
+
+    const summaryB = await request(app).get(`/api/clinical/sessions/${sessionBId}/summary`);
+    expect(summaryB.status).toBe(200);
+    expect(summaryB.body.success).toBe(true);
+
+    // Session B must have stomach/vomiting, NOT chest pain from Session A
+    expect(summaryB.body.data.primaryConcern).toBe('stomach');
+    expect(summaryB.body.data.location).toBeNull();
+    expect(summaryB.body.data.duration).toEqual({ value: 3, unit: 'days' });
+
+    // Ensure Session A still has its own distinct chest data
+    const summaryA = await request(app).get(`/api/clinical/sessions/${sessionId}/summary`);
+    expect(summaryA.body.data.location).toBe('chest');
+  });
 });
+

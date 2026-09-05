@@ -63,9 +63,24 @@ export class QuestionSelector {
     const eligibleIds = this.getEligibleQuestionIds(sessionState);
 
     // Filter catalog to eligible, unanswered questions
-    const candidateQuestions = this.catalog.filter(
-      (q) => eligibleIds.has(q.id) && !sessionState.completedQuestionIds.has(q.id)
-    );
+    const candidateQuestions = this.catalog.filter((q) => {
+      if (!eligibleIds.has(q.id)) return false;
+      if (sessionState.completedQuestionIds.has(q.id)) return false;
+
+      // Skip questions if the slot was already populated with a concrete value from voice extraction
+      const factKey = `${q.concept}.${q.attribute}`;
+      const existingFact = sessionState.collectedFacts[factKey];
+      if (
+        existingFact &&
+        existingFact.value !== undefined &&
+        existingFact.value !== null &&
+        existingFact.value !== 'unknown'
+      ) {
+        return false;
+      }
+
+      return true;
+    });
 
     if (candidateQuestions.length === 0) {
       return null; // All eligible questions answered

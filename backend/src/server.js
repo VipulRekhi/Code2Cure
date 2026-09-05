@@ -1,7 +1,7 @@
 import { app } from './app.js';
 import { config } from './config/env.js';
 import { prisma } from './config/prisma.js';
-
+// MediKiosk Backend Server - Phase 5 Voice Pipeline Active
 async function startServer() {
   try {
     // Verify database connection via Prisma

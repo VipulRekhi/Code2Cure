@@ -1,55 +1,78 @@
-/**
- * Audio Synthesis & Playback Controller (Section 17)
- * Uses browser Web Speech API SpeechSynthesis or simulated audio prompt.
- */
+import { ttsService } from './services/ttsService.js';
 
 class AudioController {
   constructor() {
-    this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
-    this.isSpeaking = false;
+    this.audioCtx = null;
+    this.listeners = new Set();
   }
 
-  speak(text, lang = 'mr') {
-    return new Promise((resolve) => {
-      if (!this.synth) {
-        console.log(`[Audio] Simulated TTS playback for: "${text}" (${lang})`);
-        setTimeout(resolve, 1500);
-        return;
+  get isSpeaking() {
+    return ttsService.isSpeaking;
+  }
+
+  /**
+   * Play a subtle, warm kiosk chime via Web Audio API.
+   * Gentle Hospital Chime (soft harmonic sine wave).
+   */
+  playChime() {
+    try {
+      const AudioContextClass = typeof window !== 'undefined' ? window.AudioContext || window.webkitAudioContext : null;
+      if (!AudioContextClass) return;
+
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioContextClass();
       }
 
-      this.stop();
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      // Set appropriate BCP-47 tag
-      if (lang === 'mr') utterance.lang = 'mr-IN';
-      else if (lang === 'hi') utterance.lang = 'hi-IN';
-      else utterance.lang = 'en-IN';
+      const now = this.audioCtx.currentTime;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
 
-      utterance.rate = 0.9; // Slightly slower for elderly/kiosk clarity
+      // Soft harmonic chime (C5 523Hz -> E5 659Hz)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15);
 
-      this.isSpeaking = true;
+      // Low volume (0.04) so it's a pleasant tactile cue, not a loud beep
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
 
-      utterance.onend = () => {
-        this.isSpeaking = false;
-        resolve();
-      };
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
 
-      utterance.onerror = (e) => {
-        console.warn('[Audio] Speech synthesis warning:', e);
-        this.isSpeaking = false;
-        resolve();
-      };
+      osc.start(now);
+      osc.stop(now + 0.31);
+    } catch (err) {
+      // AudioContext not allowed before user gesture
+    }
+  }
 
-      this.synth.speak(utterance);
-    });
+  getBestVoice(lang) {
+    return ttsService.getBestVoice(lang);
+  }
+
+  getVoiceStatus(lang) {
+    return ttsService.getVoiceStatus(lang);
+  }
+
+  /**
+   * Delegates speech synthesis to centralized ttsService with natural sentence processing.
+   */
+  async speak(text, lang = 'mr') {
+    return await ttsService.speak({ text, language: lang });
   }
 
   stop() {
-    if (this.synth && this.synth.speaking) {
-      this.synth.cancel();
-      this.isSpeaking = false;
-    }
+    ttsService.stop();
+  }
+
+  onSpeakingChange(callback) {
+    return ttsService.onSpeakingChange(callback);
   }
 }
 
 export const audioController = new AudioController();
+

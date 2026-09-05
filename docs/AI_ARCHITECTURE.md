@@ -1,137 +1,118 @@
 # AI Architecture & Model Strategy — MediKiosk
 
-**Document Version:** 1.0.0 (Phase 0 Baseline)  
+**Document Version:** 3.0.0 (Phase 5 Multilingual Voice Pipeline)  
 **Date:** September 2026  
 
 ---
 
-## 1. Open-Source AI Strategy & Model Selections
+## 1. Sovereign Open-Source AI Strategy
 
-MediKiosk is architected around **sovereign, open-weight, self-hostable AI models**. No patient-identifiable healthcare data is transmitted to third-party commercial cloud APIs.
+MediKiosk is architected around **sovereign, open-weight, self-hostable AI models**. No patient-identifiable healthcare data is transmitted to external commercial cloud APIs.
 
 | AI Domain | Selected Open-Source Model | Hosting / Runtime Technology | Primary Clinical & System Tasks |
 | :--- | :--- | :--- | :--- |
-| **Large Language Model (LLM)** | **Qwen2.5-7B-Instruct** (Alibaba Cloud / Open Weights) | vLLM / Ollama (4-bit/8-bit AWQ or GGUF) | • Structured clinical slot extraction<br>• Vernacular question phrasing<br>• Medical document entity extraction<br>• SOAP-style clinical summary generation |
-| **Speech-to-Text (ASR)** | **AI4Bharat IndicConformer** | PyTorch / FastAPI / ONNX Runtime | • End-to-end vernacular speech transcription<br>• Baseline: Hindi, Marathi, English<br>• High noise-robustness for Indian accents |
-| **Text-to-Speech (TTS)** | **AI4Bharat IndicF5** | PyTorch / FastAPI / Triton | • Natural-sounding multilingual audio prompt synthesis<br>• Empathetic tone for low-literacy patient guidance |
-| **Optical Character Recognition (OCR)** | **PaddleOCR (PP-OCRv4 / PP-Structure)** | PaddlePaddle Python API / ONNX | • Layout analysis (tables, prescription headers)<br>• Text line detection & recognition on printed/semi-handwritten records |
+| **Speech-to-Text (ASR)** | **AI4Bharat IndicConformer** | PyTorch / Python Model Runtime (`voice_runtime/server.py`) or Mock Provider | • End-to-end vernacular speech transcription<br>• Supported: Marathi (`mr`), Hindi (`hi`), English (`en`)<br>• 16kHz mono PCM WAV capture<br>• Preserves verbatim spoken vernacular transcript |
+| **Large Language Model (LLM)** | **Qwen 2.5 7B Instruct** (Alibaba Cloud / Open Weights) | vLLM / Ollama (4-bit/8-bit AWQ/GGUF) or High-Fidelity Mock Provider | • Structured clinical slot extraction<br>• Vernacular interpretation (Marathi, Hindi, English)<br>• Normalization into language-neutral clinical ontology |
+| **Adaptive Clinical Reasoning** | **Deterministic QuestionEngine** (Section 11, 36) | Pure Node.js / Express Foundation | • Rule-based conditional questioning<br>• Complete immunity from LLM hallucinations<br>• Clinical protocol adherence |
+| **Text-to-Speech (TTS)** | **AI4Bharat IndicF5** | PyTorch / Python Model Runtime (`voice_runtime/server.py`) or Mock Provider | • High-fidelity natural Indian language speech output<br>• 24kHz audio synthesis using matched reference voice prompts<br>• Eliminates computerized robotic speech artifacts |
+| **Optical Character Recognition (OCR)** | **PaddleOCR (PP-OCRv4 / PP-Structure)** | PaddlePaddle Python API / ONNX (Phase 6) | • Layout analysis and entity extraction on medical records |
 
 ---
 
-## 2. Pluggable AI Service Abstraction Layer
+## 2. End-to-End Multilingual Voice Pipeline Architecture
 
-To ensure the Node.js/Express backend never becomes tightly coupled to a specific inference engine, all AI services implement strict TypeScript abstraction interfaces:
+The foundational operational rule governing MediKiosk is:
 
-```typescript
-// 1. LLM Provider Abstraction
-export interface LLMCompletionOptions {
-  temperature?: number;
-  maxTokens?: number;
-  responseFormat?: "json_object" | "text";
-  systemPrompt?: string;
-}
+```text
+IndicConformer transcribes.
+Qwen extracts.
+QuestionEngine decides.
+IndicF5 synthesizes.
+```
 
-export interface ILLMProvider {
-  name: string;
-  isAvailable(): Promise<boolean>;
-  generateText(prompt: string, options?: LLMCompletionOptions): Promise<string>;
-  extractJson<T>(prompt: string, jsonSchema: object, options?: LLMCompletionOptions): Promise<T>;
-}
-
-// 2. ASR Provider Abstraction
-export interface TranscriptionResult {
-  transcript: string;
-  confidence: number;
-  detectedLanguage: string;
-  audioDurationSeconds: number;
-}
-
-export interface IASRProvider {
-  name: string;
-  isAvailable(): Promise<boolean>;
-  transcribeAudio(audioBuffer: Buffer, languageCode: "en" | "hi" | "mr"): Promise<TranscriptionResult>;
-}
-
-// 3. TTS Provider Abstraction
-export interface SynthesisResult {
-  audioBuffer: Buffer;
-  mimeType: "audio/wav" | "audio/mp3";
-  sampleRate: number;
-}
-
-export interface ITTSProvider {
-  name: string;
-  isAvailable(): Promise<boolean>;
-  synthesizeSpeech(text: string, languageCode: "en" | "hi" | "mr", gender?: "MALE" | "FEMALE"): Promise<SynthesisResult>;
-}
-
-// 4. OCR Provider Abstraction
-export interface OCRTextBlock {
-  text: string;
-  confidence: number;
-  boundingBox: {
-    xMin: number;
-    yMin: number;
-    xMax: number;
-    yMax: number;
-  };
-  pageNumber: number;
-}
-
-export interface OCRResult {
-  rawText: string;
-  blocks: OCRTextBlock[];
-  detectedOrientation: number;
-  processingTimeMs: number;
-}
-
-export interface IOCRProvider {
-  name: string;
-  isAvailable(): Promise<boolean>;
-  extractText(fileBuffer: Buffer, mimeType: string): Promise<OCRResult>;
-}
+```text
+PATIENT SPEECH
+      │
+      ▼ Microphone (Web Audio API / MediaRecorder)
+Audio Capture (WAV / 16kHz mono PCM)
+      │
+      ▼ POST /api/voice/asr
+Express Voice Service (backend/src/modules/voice/)
+      │
+      ├─► IndicConformer ASR Provider (voice_runtime/ or mockVoiceProvider)
+      │
+Raw Vernacular Transcript (mr / hi / en)
+      │
+      ▼ POST /api/clinical/sessions/:id/responses
+clinicalExtractionService ──► Qwen 2.5 7B Instruct
+      │
+Structured Clinical Slots ({ concept, attribute, value, unit, status })
+      │
+      ▼
+ClinicalState (Language-Neutral Session Store & Stale Fact Invalidator)
+      │
+      ▼
+Deterministic QuestionEngine (Selects Next Question ID)
+      │
+Localized Question Text (i18n: mr / hi / en)
+      │
+      ▼ POST /api/voice/tts
+Express Voice Service (backend/src/modules/voice/)
+      │
+      ├─► IndicF5 TTS Provider (24kHz WAV with Language Reference Voice)
+      │
+Synthesized Natural Speech Audio (WAV Stream / Base64)
+      │
+      ▼
+Kiosk Speaker Playback (Audio Controller with Instant Cut-off & Echo Gate)
 ```
 
 ---
 
-## 3. Provider Implementations Architecture
+## 3. Strict Safety & Ethical Boundaries
 
-```
-[Express.js AI Module]
-        |
-        +---> ILLMProvider ------------> QwenLocalProvider (via vLLM / OpenAI-compatible API)
-        |
-        +---> IASRProvider ------------> IndicConformerProvider (via FastAPI sidecar)
-        |
-        +---> ITTSProvider ------------> IndicF5Provider (via FastAPI sidecar)
-        |
-        +---> IOCRProvider ------------> PaddleOCRProvider (via Python sidecar)
-```
-
-Each provider adapter includes:
-- **Health Check & Circuit Breakers:** Graceful fallbacks if the local GPU worker or container is restarting.
-- **Mock Implementations:** Deterministic mock providers for zero-GPU unit testing and CI/CD pipelines.
-- **Latency & Error Instrumentation:** Logging of token counts, inference times, and confidence distributions.
-
----
-
-## 4. Prompt Engineering & Guardrail Framework
-
-### 4.1 Strict JSON Mode with Schema Enforcement
-All LLM information extraction tasks use constrained schema prompts with strict Zod validation at the Node.js layer. If an LLM response violates schema or outputs invalid JSON, it automatically retries with a repair prompt.
-
-### 4.2 Medical Fact Grounding Rules (Zero-Hallucination Policy)
-1. **Never Invent Medical Facts:** If an extracted document or patient transcript does not explicitly contain a dosage, frequency, or diagnosis, the LLM MUST set the field to `null` or `"UNKNOWN"`.
-2. **Explicit Provenance Inclusion:** Every extracted JSON object generated by the LLM is stamped with `sourceModel: "qwen2.5-7b-instruct"` and `provenance: "AI_EXTRACTED"`.
-3. **Draft Summary Guardrails:** All generated clinical summaries prefix the document with:
-   > *"PROVISIONAL DRAFT GENERATED BY MEDIKIOSK AI. REQUIRES LICENSED PHYSICIAN VERIFICATION BEFORE CLINICAL ACTION."*
+1. **Information Extraction Only:**
+   - Qwen is strictly an **information extractor**.
+   - Qwen **MUST NOT** diagnose medical conditions, recommend treatments, prescribe medication, or determine emergency triage levels.
+2. **ASR & TTS Non-Interference:**
+   - IndicConformer only performs `speech -> text`. It does not normalize clinical concepts or diagnose.
+   - IndicF5 only performs `text -> speech`. It does not translate or alter question content.
+3. **Anti-Hallucination Safeguards:**
+   - Unstated attributes are never fabricated. If a patient states "I have pain", the extractor produces `concept: 'symptom.pain', attribute: 'complaint_type', value: 'pain'` without guessing chest or severe.
+4. **Negative & Unknown Distinction:**
+   - Explicit denials ("नाही" / "नहीं" / "no") are captured as `ABSENT`.
+   - Expressed uncertainty ("माहित नाही" / "पता नहीं" / "don't know") is captured as `UNKNOWN`.
+5. **Prompt Injection Defense:**
+   - Patient transcripts are enclosed within untrusted XML boundaries (`<PATIENT_INPUT>...</PATIENT_INPUT>`) and cannot override the system prompt.
+6. **Ontology Validation:**
+   - All extracted concepts must match `CLINICAL_CONCEPTS`. Unknown concept keys are immediately filtered out.
+7. **Acoustic Feedback & Echo Gate:**
+   - While TTS is playing, microphone capture is strictly disabled in the frontend voice state machine, preventing the kiosk from transcribing its own audio.
 
 ---
 
-## 5. Hardware Sizing & Deployment Profiles
+## 4. Voice Service & Model Runtime Interface
 
-| Deployment Profile | Target Hardware | LLM Quantization | Concurrent Kiosks | Est. Latency |
-| :--- | :--- | :--- | :--- | :--- |
-| **Standard Edge Workstation** | 1x NVIDIA RTX 4090 (24GB VRAM) + 32GB RAM | Qwen2.5-7B AWQ (4-bit) | 4–6 terminals | LLM TTFT: ~80ms<br>ASR: ~600ms |
-| **Institutional Hospital Server** | 2x NVIDIA A5000 / L40S (48–96GB VRAM) | Qwen2.5-7B FP16 / 8-bit | 20+ terminals | LLM TTFT: ~40ms<br>ASR: ~300ms |
-| **Development / CPU Fallback** | Modern 8-core x86_64 CPU + 32GB RAM | Qwen2.5-7B GGUF Q4_K_M via Ollama CPU | 1 terminal (Dev mode) | LLM TTFT: ~800ms<br>ASR: ~2.5s |
+The AI & voice layers are cleanly modularized:
+
+- **`backend/src/modules/voice/`**:
+  - `voiceConfig.js`: Configures providers, endpoints, timeouts, and sample rates.
+  - `asrService.js`: Validates incoming audio, handles short/empty audio fallbacks, routes to IndicConformer or mock.
+  - `ttsService.js`: Manages audio synthesis, in-memory question caching (`questionId` + `lang`), routes to IndicF5 or mock.
+  - `providers/indicConformerProvider.js`: HTTP client talking to the IndicConformer inference runtime.
+  - `providers/indicF5Provider.js`: HTTP client talking to the IndicF5 inference runtime (24kHz WAV stream).
+  - `providers/mockVoiceProvider.js`: Deterministic provider for CI, testing, and offline environments.
+- **`voice_runtime/server.py`**:
+  - Standalone, lightweight Python service providing `/asr` and `/tts` endpoints.
+  - Keeps models loaded in memory on startup.
+  - Automatic hardware detection: NVIDIA CUDA GPU acceleration (e.g. RTX 4050) with graceful CPU fallback.
+  - Matched reference voice prompts for Marathi, Hindi, and Indian English.
+
+---
+
+## 5. Provenance & Clinical Integrity
+
+- Every voice response preserves both the exact vernacular transcript (`rawResponse`, `source: 'PATIENT_VOICE'`, `inputMethod: 'VOICE'`) and the validated normalized clinical fact (`prisma.clinicalFact`).
+- All facts remain linked to `sessionId`, `questionId`, and `responseId`.
+- Cross-session contamination is strictly prevented through session isolation and state clearing.
+

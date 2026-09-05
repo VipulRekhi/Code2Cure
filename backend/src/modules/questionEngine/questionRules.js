@@ -39,6 +39,18 @@ export const CLINICAL_RULES = [
     enables: ['q.fever.duration', 'q.fever.pattern', 'q.fever.associated'],
   },
 
+  // When complaint is stomach / vomiting
+  {
+    id: 'rule.complaint-is-stomach',
+    when: {
+      concept: 'symptom.pain',
+      attribute: 'complaint_type',
+      operator: 'equals',
+      value: 'stomach',
+    },
+    enables: ['q.history.conditions', 'q.history.allergies'],
+  },
+
   // Adaptive Chest-specific follow-ups (Section 14 & 31)
   {
     id: 'rule.chest-pain-specifics',

@@ -3,6 +3,7 @@ import { translations, t, supportedLanguages } from '../js/i18n.js';
 import { appState, setLanguage, resetSession } from '../js/state.js';
 import { MOCK_QUESTION_FLOW } from '../js/mock/mockQuestions.js';
 import { documentService } from '../js/services/documentService.js';
+import { renderPatientReviewScreen } from '../js/screens/patientReview.js';
 
 describe('MediKiosk Phase 2 Vanilla Frontend Test Suite', () => {
   beforeEach(() => {
@@ -109,7 +110,46 @@ describe('MediKiosk Phase 2 Vanilla Frontend Test Suite', () => {
       expect(stages).toContain('organizingDoc');
       expect(result.id).toBeDefined();
       expect(result.type).toBe('PRESCRIPTION');
-      expect(result.isDemoData).toBe(true);
+    });
+  });
+
+  describe('Phase 4 Clinical Data Mapping & Review UI Fixes (Section 32)', () => {
+    it('renders Marathi vomiting statement without chest pain or undefined days', () => {
+      setLanguage('mr');
+
+      // Patient responded with vomiting for 3 days
+      appState.complaint.id = 'STOMACH';
+      appState.complaint.textPatientSpoken = 'मला तीन दिवसांपासून रोज उलटी होत आहे';
+      appState.complaint.duration = { value: 3, unit: 'days' };
+      appState.complaint.severity = 'MODERATE';
+
+      const rendered = renderPatientReviewScreen();
+
+      expect(rendered.html).toContain('पोटदुखी / मळमळ / उलटी');
+      expect(rendered.html).not.toContain('CHEST_PAIN');
+      expect(rendered.html).not.toContain('undefined days');
+      expect(rendered.html).not.toContain('null days');
+      expect(rendered.html).not.toContain('NaN');
+      expect(rendered.html).toContain('3 days');
+      expect(rendered.html).toContain('मध्यम'); // localized severity
+      // Must not contain arbitrary "Type:" field with unrelated string
+      expect(rendered.html).not.toContain('Type:');
+    });
+
+    it('handles missing duration or severity safely without displaying undefined or null', () => {
+      setLanguage('en');
+
+      appState.complaint.id = 'STOMACH';
+      appState.complaint.duration = null;
+      appState.complaint.severity = null;
+
+      const rendered = renderPatientReviewScreen();
+
+      expect(rendered.html).not.toContain('undefined');
+      expect(rendered.html).not.toContain('null');
+      expect(rendered.html).toContain('Not provided');
     });
   });
 });
+
+

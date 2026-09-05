@@ -62,9 +62,17 @@ export function renderConsentScreen() {
   return {
     html,
     attachEvents: () => {
-      document.getElementById('btn-consent-audio')?.addEventListener('click', () => {
+      const consentAudioBtn = document.getElementById('btn-consent-audio');
+      consentAudioBtn?.addEventListener('click', async () => {
+        if (audioController.isSpeaking) {
+          audioController.stop();
+          consentAudioBtn.classList.remove('playing');
+          return;
+        }
+        consentAudioBtn.classList.add('playing');
         const fullExplanation = `${t('consentTitle', lang)}. ${t('consentPoint1', lang)}. ${t('consentPoint2', lang)}. ${t('consentPoint4', lang)}.`;
-        audioController.speak(fullExplanation, lang);
+        await audioController.speak(fullExplanation, lang);
+        consentAudioBtn.classList.remove('playing');
       });
 
       document.getElementById('btn-consent-agree')?.addEventListener('click', () => {

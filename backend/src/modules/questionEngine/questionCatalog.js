@@ -26,6 +26,8 @@ export const QUESTION_CATALOG = [
     },
     options: [
       { value: 'pain', labels: { en: 'Pain or Discomfort', hi: 'दर्द या बेचैनी', mr: 'वेदना किंवा अस्वस्थता' }, icon: '🫀' },
+      { value: 'knee_pain', labels: { en: 'Knee Pain / Joint', hi: 'घुटने में दर्द', mr: 'गुडघेदुखी / सांधेदुखी' }, icon: '🦵' },
+      { value: 'diarrhea', labels: { en: 'Diarrhea / Loose Stools', hi: 'दस्त / पेट खराब', mr: 'जुलाब / संडास' }, icon: '💩' },
       { value: 'fever', labels: { en: 'Fever / High Temperature', hi: 'बुखार / तापमान', mr: 'ताप / अंग गरम असणे' }, icon: '🤒' },
       { value: 'cough', labels: { en: 'Cough / Cold', hi: 'खांसी / जुकाम', mr: 'खोकला / सर्दी' }, icon: '🤧' },
       { value: 'breathing', labels: { en: 'Breathing Difficulty', hi: 'सांस फूलना / सांस लेने में तकलीफ', mr: 'श्वास घेण्यास त्रास' }, icon: '😮‍💨' },

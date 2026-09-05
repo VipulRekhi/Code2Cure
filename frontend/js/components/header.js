@@ -3,13 +3,14 @@
  */
 
 import { t, supportedLanguages } from '../i18n.js';
-import { appState, setLanguage } from '../state.js';
+import { appState, setLanguage, resetSession } from '../state.js';
+import { router } from '../router.js';
 
 export function renderHeader(container) {
   const currentLangObj = supportedLanguages.find((l) => l.code === appState.language) || supportedLanguages[0];
 
   container.innerHTML = `
-    <div class="kiosk-brand">
+    <div class="kiosk-brand" style="cursor: pointer;" title="Start Over / नवीन रुग्ण">
       <div class="kiosk-brand-icon" aria-hidden="true">🏥</div>
       <div>
         <span>${t('appName', appState.language)}</span>
@@ -30,4 +31,9 @@ export function renderHeader(container) {
       </button>
     </div>
   `;
+
+  container.querySelector('.kiosk-brand')?.addEventListener('click', () => {
+    resetSession();
+    router.navigate('welcome');
+  });
 }

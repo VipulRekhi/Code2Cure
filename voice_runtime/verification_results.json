@@ -1,0 +1,34 @@
+[
+  {
+    "spoken": "माझा गुडघा दुखतोय",
+    "language": "mr",
+    "audio_bytes": 80718,
+    "provider": "google-multilingual-asr",
+    "transcript": "माझा गुडघा दुखतोय",
+    "confidence": 0.95
+  },
+  {
+    "spoken": "मला तीन दिवसांपासून उलटी होत आहे",
+    "language": "mr",
+    "audio_bytes": 22608,
+    "provider": "google-multilingual-asr",
+    "transcript": "मला तीन दिवसांपासून उलटी होत आहे",
+    "confidence": 0.95
+  },
+  {
+    "spoken": "मुझे बुखार है",
+    "language": "hi",
+    "audio_bytes": 71502,
+    "provider": "google-multilingual-asr",
+    "transcript": "मुझे बुखार है",
+    "confidence": 0.95
+  },
+  {
+    "spoken": "I have pain in my left knee",
+    "language": "en",
+    "audio_bytes": 16416,
+    "provider": "google-multilingual-asr",
+    "transcript": "I have pain in my left me",
+    "confidence": 0.95
+  }
+]

@@ -20,6 +20,8 @@ export const translations = {
     close: "Close",
     askStaff: "Ask for staff assistance",
     needHelp: "Need help?",
+    understandingVoice: "Understanding your response...",
+    notProvided: "Not provided",
 
     // Welcome Screen
     welcomeTitle: "Welcome to MediKiosk",
@@ -78,6 +80,9 @@ export const translations = {
 
     // Common Complaints
     cChestPain: "Chest Discomfort / Pain",
+    cPain: "Pain / Discomfort",
+    cKneePain: "Knee Pain / Discomfort",
+    cDiarrhea: "Diarrhea / Loose Stools",
     cFever: "Fever / Chills",
     cCough: "Cough / Cold",
     cBreathing: "Breathing Problem",
@@ -168,8 +173,10 @@ export const translations = {
     skip: "यह प्रश्न छोड़ें",
     listen: "निर्देश सुनें",
     close: "बंद करें",
-    askStaff: "कर्मचारी की सहायता लें",
+    askStaff: "कर्मचारी की मदद लें",
     needHelp: "मदद चाहिए?",
+    understandingVoice: "आपके उत्तर को समझा जा रहा है...",
+    notProvided: "उपलब्ध नहीं",
 
     // Welcome Screen
     welcomeTitle: "मेडीकियोस्क में आपका स्वागत है",
@@ -228,6 +235,9 @@ export const translations = {
 
     // Common Complaints
     cChestPain: "सीने में दर्द या भारीपन",
+    cPain: "दर्द / बेचैनी",
+    cKneePain: "घुटने में दर्द / जोड़ दर्द",
+    cDiarrhea: "दस्त / पेट खराब / लूज मोशन",
     cFever: "बुखार / ठंड लगना",
     cCough: "खांसी / जुकाम",
     cBreathing: "सांस लेने में तकलीफ",
@@ -320,6 +330,8 @@ export const translations = {
     close: "बंद करा",
     askStaff: "कर्मचाऱ्यांची मदत घ्या",
     needHelp: "मदत हवी आहे?",
+    understandingVoice: "तुमच्या उत्तराचे विश्लेषण होत आहे...",
+    notProvided: "नोंदवलेले नाही",
 
     // Welcome Screen
     welcomeTitle: "मेडीकिऑस्कमध्ये आपले स्वागत आहे",
@@ -378,6 +390,9 @@ export const translations = {
 
     // Common Complaints
     cChestPain: "छातीत दुखणे किंवा जड वाटणे",
+    cPain: "वेदना किंवा अस्वस्थता",
+    cKneePain: "गुडघेदुखी / सांधेदुखी",
+    cDiarrhea: "जुलाब / संडास / अतिसार",
     cFever: "ताप / थंडी वाजणे",
     cCough: "खोकला / सर्दी",
     cBreathing: "श्वास घेण्यास त्रास",

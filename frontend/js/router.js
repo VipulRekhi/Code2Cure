@@ -8,6 +8,7 @@ import { renderHeader } from './components/header.js';
 import { renderProgress } from './components/progress.js';
 import { t } from './i18n.js';
 import { showHelpModal } from './screens/help.js';
+import { renderDebugPanel } from './components/debugPanel.js';
 
 // Screens Map
 import { renderWelcomeScreen } from './screens/welcome.js';
@@ -127,6 +128,7 @@ class Router {
           Kiosk Terminal #01 • Online
         </span>
       </div>
+      ${renderDebugPanel()}
     `;
 
     document.getElementById('btn-global-back')?.addEventListener('click', () => {

@@ -4,14 +4,14 @@
 [![Ministry of Ayush](https://img.shields.io/badge/Ministry-Ayush-green.svg)](https://ayush.gov.in/)
 [![All India Institute of Ayurveda](https://img.shields.io/badge/Department-AIIA-blue.svg)](https://aiia.gov.in/)
 [![Problem Statement](https://img.shields.io/badge/Problem%20Statement-SIH26047-red.svg)](https://www.sih.gov.in/)
-[![Current Implementation](https://img.shields.io/badge/Current%20Status-Phase%203%20Completed-brightgreen.svg)]()
+[![Current Implementation](https://img.shields.io/badge/Current%20Status-Phase%204%20Completed-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg)](LICENSE)
 
 > **SIH 2026 Problem Statement ID:** SIH26047  
 > **Title:** Patient Case-Taking Software  
 > **Organization:** Ministry of Ayush | **Department:** All India Institute of Ayurveda (AIIA)  
 > **Theme:** MedTech / BioTech / HealthTech  
-> **Current implementation:** **Phase 3**
+> **Current implementation:** **Phase 4**
 
 ---
 
@@ -264,41 +264,32 @@ npm test
 
 ## 13. Current Phase
  
-**Current implementation: Phase 3**
+**Current implementation: Phase 4**
 
-### Phase 3 Deliverables Completed
-- [x] Complete backend migration from TypeScript to pure JavaScript (Node.js v24+ ES Modules)
-- [x] Database configuration upgraded to support Supabase PostgreSQL with `DATABASE_URL` (pooler) and `DIRECT_URL` (direct migration)
-- [x] Prisma schema extended with `ClinicalSession`, `QuestionResponse`, and `ClinicalFact` models
-- [x] Schema-driven Clinical Concept Ontology (`clinicalConcepts.js`) with unique identifiers and multilingual labels (`mr`, `hi`, `en`)
-- [x] Deterministic Question Catalog (`questionCatalog.js`) covering 5 MVP outpatient pathways (Chest Pain, Abdominal Pain, Fever, Cough, Headache) and Medical History
-- [x] Rule-based adaptive branching engine (`questionRules.js` & `questionSelector.js`) with operators (`equals`, `notEquals`, `contains`, `in`, `exists`, `greaterThan`, `lessThan`)
-- [x] Full separation of raw patient responses from normalized clinical facts with source provenance tracking (`patient_voice`, `patient_touch`, `patient_text`)
-- [x] Explicit `UNKNOWN` state distinct from `ABSENT` (negative) and `DECLINED`
-- [x] Dynamic response revision and stale fact invalidation
-- [x] Deterministic vernacular demo voice parser (`demoParser.js`) for test transcripts
-- [x] Clinical REST API endpoints (`/api/clinical/sessions`, `/api/clinical/sessions/:id/next-question`, `/api/clinical/sessions/:id/responses`, `/api/clinical/sessions/:id/progress`)
-- [x] Frontend `conversation.js` dynamic integration with the backend question engine API
-- [x] 100% passing automated test suite (21 backend tests, 8 frontend tests = 29 tests total)
-- [x] Live end-to-end browser verification in Marathi with adaptive chest pain radiation branching and token receipt generation
+### Phase 4 Deliverables Completed
+- [x] Open-source **Qwen 2.5 7B Instruct** clinical slot extraction module (`backend/src/modules/ai/`)
+- [x] Clean AI provider abstraction decoupled from runtime specifics (`qwenProvider.js` for local vLLM/Ollama and `mockProvider.js` for testing)
+- [x] Centralized configuration (`aiConfig.js`) with support for `AI_MODE=qwen` and `AI_MODE=mock`
+- [x] Strict Zod output schema validation (`clinicalExtractionSchema.js`) and prompt injection defense
+- [x] Anti-hallucination safeguards: unstated symptoms are never fabricated
+- [x] Strict safety boundaries: zero diagnosis, zero prescription, zero triage classification
+- [x] Multilingual extraction parity across Marathi, Hindi, and English into language-neutral concept IDs
+- [x] Multi-slot extraction: extracts multiple clinical facts from a single complex utterance
+- [x] Explicit negative (`ABSENT`) and unknown (`UNKNOWN`) semantics preserved
+- [x] Direct integration into `POST /api/clinical/sessions/:id/responses` and dedicated `POST /api/clinical/sessions/:id/extract`
+- [x] Preservation of raw transcripts and source provenance (`PATIENT_VOICE`)
+- [x] Seamless deterministic QuestionEngine decision-making (`Qwen extracts. QuestionEngine decides.`)
+- [x] 100% passing automated test suite (36 backend tests, 8 frontend tests = 44 tests total)
+- [x] End-to-end live browser verification with Marathi voice recognition, slot extraction, and token generation
 
 ---
 
 ## 14. Future Phases
 
-The upcoming development phases will activate AI sidecars on top of this structured foundation:
+The upcoming development phases will activate speech sidecars and document intelligence on top of this structured foundation:
 
-- **Phase 4:** Qwen2.5-7B LLM Integration & Zero-Shot Clinical Slot Extraction
 - **Phase 5:** IndicConformer ASR & IndicF5 TTS Multilingual Speech Sidecars
 - **Phase 6:** PaddleOCR & Medical Document Entity Extraction
-- **Phase 7:** Deterministic Red-Flag & Emergency Triage Engine
-- **Phase 8:** Clinical Summary Generation & Timeline Synthesizer
-- **Phase 9:** AYUSH & Ayurvedic Dashavidha Pariksha Module
-- **Phase 10:** Doctor Review, Verification & Sign-off Dashboard
-- **Phase 11:** FHIR R4 & ABDM Integration Adapter Layer
-- **Phase 12:** Security, Privacy & DPDP/ABDM Consent Hardening
-- **Phase 13:** Comprehensive Testing & Golden Dataset Benchmarking
-- **Phase 14:** SIH Final Demonstration, Packaging & Optimization
 - **Phase 7:** Deterministic Red-Flag & Emergency Triage Engine
 - **Phase 8:** Clinical Summary Generation & Timeline Synthesizer
 - **Phase 9:** AYUSH & Ayurvedic Dashavidha Pariksha Module

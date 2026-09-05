@@ -36,10 +36,19 @@ export const appState = {
   complaint: {
     id: null,           // e.g. "CHEST_PAIN"
     textPatientSpoken: null,
+    initialComplaintTranscript: null,
+    location: null,
     duration: null,     // e.g. { value: 3, unit: "days" }
     severity: null,     // e.g. "MODERATE"
     character: null,    // e.g. "PRESSURE"
   },
+
+  // Contextual Conversation & Turn Management (Phase 6.3)
+  latestPatientResponseTranscript: null,
+  latestNormalizedAnswer: null,
+  latestSelectedOption: null,
+  currentQuestionSource: null,
+  conversationHistory: [],
 
   // Document Uploads (Section 29)
   documents: [],
@@ -79,7 +88,7 @@ export function setLanguage(lang) {
   }
 }
 
-export function resetSession() {
+export function resetSession(notify = true) {
   appState.sessionId = `MK-${Date.now().toString().slice(-6)}`;
   appState.backendSessionId = null;
   appState.patient = {
@@ -97,10 +106,17 @@ export function resetSession() {
   appState.complaint = {
     id: null,
     textPatientSpoken: null,
+    initialComplaintTranscript: null,
+    location: null,
     duration: null,
     severity: null,
     character: null,
   };
+  appState.latestPatientResponseTranscript = null;
+  appState.latestNormalizedAnswer = null;
+  appState.latestSelectedOption = null;
+  appState.currentQuestionSource = null;
+  appState.conversationHistory = [];
   appState.documents = [];
   appState.voice = { status: 'IDLE', transcript: null, matchedSlot: null };
   appState.lastInteractionTime = Date.now();
@@ -110,5 +126,17 @@ export function resetSession() {
     sessionStorage.removeItem('medikiosk_patient_session');
   }
 
-  notifyStateChange('reset');
+  // Clear patient review cache and conversation state
+  import('./screens/patientReview.js').then((m) => {
+    if (m.resetPatientReviewSummary) m.resetPatientReviewSummary();
+  }).catch(() => {});
+
+  import('./screens/conversation.js').then((m) => {
+    if (m.resetConversationIndex) m.resetConversationIndex();
+  }).catch(() => {});
+
+  if (notify) {
+    notifyStateChange('reset');
+  }
 }
+

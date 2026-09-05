@@ -3,11 +3,13 @@
  */
 
 import { t } from '../i18n.js';
-import { appState } from '../state.js';
+import { appState, resetSession } from '../state.js';
 import { router } from '../router.js';
 import { audioController } from '../audio.js';
 
 export function renderWelcomeScreen() {
+  // Hard Boundary: Every arrival at welcome screen purges old clinical state (without infinite render loop)
+  resetSession(false);
   const lang = appState.language;
 
   const html = `
@@ -51,11 +53,20 @@ export function renderWelcomeScreen() {
     html,
     attachEvents: () => {
       document.getElementById('btn-welcome-start')?.addEventListener('click', () => {
+        resetSession();
         router.navigate('language');
       });
 
-      document.getElementById('btn-welcome-audio')?.addEventListener('click', () => {
-        audioController.speak(t('welcomeAudioPrompt', appState.language), appState.language);
+      const welcomeAudioBtn = document.getElementById('btn-welcome-audio');
+      welcomeAudioBtn?.addEventListener('click', async () => {
+        if (audioController.isSpeaking) {
+          audioController.stop();
+          welcomeAudioBtn.classList.remove('playing');
+          return;
+        }
+        welcomeAudioBtn.classList.add('playing');
+        await audioController.speak(t('welcomeAudioPrompt', appState.language), appState.language);
+        welcomeAudioBtn.classList.remove('playing');
       });
 
       document.getElementById('btn-welcome-help')?.addEventListener('click', () => {

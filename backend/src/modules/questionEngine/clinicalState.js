@@ -15,7 +15,26 @@ export class ClinicalSessionState {
     this.responses = [];           // Array of QuestionResponse
     this.completedQuestionIds = new Set();
     this.skippedQuestionIds = new Set();
+    this.questionsAlreadyAsked = []; // Array of asked questions { id, concept, attribute, text, source }
     this.currentQuestionId = null;
+    this.primaryConcern = null;
+  }
+
+  /**
+   * Records a question that was asked to the patient for tracking & duplicate avoidance.
+   */
+  recordAskedQuestion(question) {
+    if (!question) return;
+    this.currentQuestionId = question.id;
+    this.questionsAlreadyAsked.push({
+      id: question.id,
+      concept: question.concept,
+      attribute: question.attribute,
+      text: question.text,
+      options: question.options || [],
+      source: question.source || 'LLM_DYNAMIC',
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
@@ -77,6 +96,10 @@ export class ClinicalSessionState {
     // 4. Invalidate stale dependent facts if revision occurred (Section 47)
     this.invalidateStaleFacts(question.id, normalizedValue);
 
+    if (question.id === 'q.chief_complaint' && normalizedValue) {
+      this.primaryConcern = String(normalizedValue);
+    }
+
     return responseRecord;
   }
 
@@ -104,16 +127,159 @@ export class ClinicalSessionState {
     return this.collectedFacts[`${concept}.${attribute}`] || null;
   }
 
-  toSummary() {
+  /**
+   * Builds structured, validated clinical summary for review and persistence.
+   */
+  getClinicalSummary() {
+    // 1. Resolve Primary Concern (Section 15, 16, 44)
+    // Priority: explicitly assigned primaryConcern, or derived from first complaint fact, or null. NEVER default to CHEST_PAIN or pain!
+    let primaryConcernVal = this.primaryConcern;
+
+    if (!primaryConcernVal) {
+      if (this.collectedFacts['symptom.dyspnea.presence']?.status === 'PRESENT' || this.collectedFacts['symptom.breathing.presence']?.status === 'PRESENT') {
+        primaryConcernVal = 'breathing';
+      } else if (this.collectedFacts['symptom.diarrhea.presence']?.status === 'PRESENT') {
+        primaryConcernVal = 'diarrhea';
+      } else if (this.collectedFacts['symptom.pain.knee.location']?.value === 'knee') {
+        primaryConcernVal = 'knee_pain';
+      } else if (this.collectedFacts['symptom.pain.chest.location']?.value === 'chest') {
+        primaryConcernVal = 'chest_pain';
+      } else if (this.collectedFacts['symptom.pain.abdominal.location']?.value === 'abdomen') {
+        primaryConcernVal = 'stomach';
+      } else if (this.collectedFacts['symptom.pain.complaint_type']?.value) {
+        primaryConcernVal = this.collectedFacts['symptom.pain.complaint_type'].value;
+      } else {
+        const chiefComplaintResponse = this.responses.find((r) => r.questionId === 'q.chief_complaint');
+        if (chiefComplaintResponse?.normalizedValue) {
+          primaryConcernVal = chiefComplaintResponse.normalizedValue;
+        }
+      }
+    }
+
+    // 2. Resolve Duration (Dynamic per primary concern; supports range & vague objects)
+    let duration = null;
+    let durationFact =
+      this.collectedFacts['symptom.dyspnea.duration'] ||
+      this.collectedFacts['symptom.breathing.duration'] ||
+      this.collectedFacts['symptom.diarrhea.duration'] ||
+      this.collectedFacts['symptom.pain.knee.duration'] ||
+      this.collectedFacts['symptom.pain.chest.duration'] ||
+      this.collectedFacts['symptom.pain.abdominal.duration'] ||
+      this.collectedFacts['symptom.vomiting.duration'] ||
+      this.collectedFacts['symptom.fever.duration'] ||
+      this.collectedFacts['symptom.pain.duration'] ||
+      this.collectedFacts['symptom.cough.duration'] ||
+      this.collectedFacts['clinical.duration.duration'] ||
+      this.collectedFacts['duration.duration'];
+
+    if (!durationFact) {
+      durationFact = Object.values(this.collectedFacts).find((f) => f.attribute === 'duration');
+    }
+
+    if (durationFact) {
+      if (
+        durationFact.precision === 'vague' ||
+        durationFact.value === null ||
+        (typeof durationFact.value === 'object' && durationFact.value?.precision === 'vague')
+      ) {
+        duration = {
+          value: null,
+          raw: durationFact.raw || durationFact.value?.raw || 'vague',
+          precision: 'vague',
+        };
+      } else if (typeof durationFact.value === 'object' && durationFact.value !== null) {
+        if (durationFact.value.min !== undefined && durationFact.value.max !== undefined) {
+          duration = {
+            min: durationFact.value.min,
+            max: durationFact.value.max,
+            unit: durationFact.value.unit || 'days',
+          };
+        } else if (durationFact.value.amount !== undefined || durationFact.value.value !== undefined) {
+          duration = {
+            value: durationFact.value.amount ?? durationFact.value.value,
+            unit: durationFact.value.unit || durationFact.unit || 'days',
+          };
+        } else {
+          duration = durationFact.value;
+        }
+      } else if (typeof durationFact.value === 'number') {
+        duration = {
+          value: durationFact.value,
+          unit: durationFact.unit || 'days',
+        };
+      }
+    }
+
+    // 3. Resolve Severity (Null if not reported, never default to MODERATE)
+    let severity = null;
+    let severityFact =
+      this.collectedFacts['symptom.dyspnea.severity'] ||
+      this.collectedFacts['symptom.breathing.severity'] ||
+      this.collectedFacts['symptom.pain.severity'] ||
+      this.collectedFacts['symptom.pain.chest.severity'] ||
+      this.collectedFacts['symptom.pain.knee.severity'] ||
+      this.collectedFacts['symptom.pain.abdominal.severity'] ||
+      this.collectedFacts['clinical.severity.severity'];
+
+    if (!severityFact) {
+      severityFact = Object.values(this.collectedFacts).find((f) => f.attribute === 'severity');
+    }
+
+    if (severityFact?.value) {
+      const rawSev = String(severityFact.value).toUpperCase();
+      if (rawSev.includes('MILD') || rawSev.includes('कमी') || rawSev.includes('हल्का')) severity = 'MILD';
+      else if (rawSev.includes('MODERATE') || rawSev.includes('मध्यम')) severity = 'MODERATE';
+      else if (rawSev.includes('SEVERE') || rawSev.includes('तीव्र') || rawSev.includes('तेज')) severity = 'SEVERE';
+      else if (rawSev.includes('UNBEARABLE') || rawSev.includes('असह्य')) severity = 'UNBEARABLE';
+      else severity = rawSev;
+    }
+
+    // 4. Resolve Location (Null if not reported, never default to abdomen)
+    let location = null;
+    const locationFact =
+      this.collectedFacts['symptom.pain.knee.location'] ||
+      this.collectedFacts['symptom.pain.chest.location'] ||
+      this.collectedFacts['symptom.pain.abdominal.location'] ||
+      this.collectedFacts['symptom.pain.location'];
+    if (locationFact?.value && locationFact.value !== 'unknown') {
+      location = locationFact.value;
+    }
+
+    // 5. Gather all structured symptoms
+    const symptoms = [];
+    for (const [key, fact] of Object.entries(this.collectedFacts)) {
+      if (fact.concept?.startsWith('symptom.') && fact.status === 'PRESENT') {
+        symptoms.push({
+          concept: fact.concept,
+          attribute: fact.attribute,
+          value: fact.value,
+          status: fact.status,
+          source: fact.source,
+          recordedAt: fact.recordedAt,
+        });
+      }
+    }
+
     return {
       sessionId: this.sessionId,
       patientId: this.patientId,
       language: this.language,
       opdMode: this.opdMode,
+      primaryConcern: primaryConcernVal,
+      duration,
+      severity,
+      location,
+      symptoms,
       factsCount: Object.keys(this.collectedFacts).length,
       facts: this.collectedFacts,
       completedQuestions: Array.from(this.completedQuestionIds),
+      questionsAlreadyAsked: this.questionsAlreadyAsked,
       responsesCount: this.responses.length,
     };
   }
+
+  toSummary() {
+    return this.getClinicalSummary();
+  }
 }
+
