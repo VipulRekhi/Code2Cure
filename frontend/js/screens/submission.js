@@ -6,6 +6,7 @@
 import { t } from '../i18n.js';
 import { appState } from '../state.js';
 import { router } from '../router.js';
+import { api } from '../api.js';
 
 export function renderSubmissionScreen() {
   const lang = appState.language;
@@ -49,8 +50,15 @@ export function renderSubmissionScreen() {
           btn.setAttribute('disabled', 'true');
         }
 
-        // Simulate submission turnaround (600ms)
-        await new Promise((r) => setTimeout(r, 600));
+        if (appState.backendSessionId) {
+          try {
+            await api.submitToDoctor(appState.backendSessionId);
+          } catch (err) {
+            console.warn('[Submission] Failed to dispatch payload to doctor:', err);
+          }
+        } else {
+          await new Promise((r) => setTimeout(r, 400));
+        }
 
         router.navigate('complete');
       });

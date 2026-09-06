@@ -49,6 +49,8 @@ export const appState = {
   latestSelectedOption: null,
   currentQuestionSource: null,
   conversationHistory: [],
+  activeQuestionId: null,
+  latestAnswerQuestionId: null,
 
   // Document Uploads (Section 29)
   documents: [],
@@ -88,6 +90,52 @@ export function setLanguage(lang) {
   }
 }
 
+// Reset handlers registered synchronously across modules
+const resetCallbacks = new Set();
+
+export function registerResetCallback(fn) {
+  if (typeof fn === 'function') {
+    resetCallbacks.add(fn);
+    return () => resetCallbacks.delete(fn);
+  }
+  return () => {};
+}
+
+/**
+ * Resets only the clinical intake session (chief complaint, active questions, conversation history, documents)
+ * while preserving patient registration and consent.
+ */
+export function resetClinicalSession(notify = true) {
+  appState.backendSessionId = null;
+  appState.complaint = {
+    id: null,
+    textPatientSpoken: null,
+    initialComplaintTranscript: null,
+    location: null,
+    duration: null,
+    severity: null,
+    character: null,
+  };
+  appState.latestPatientResponseTranscript = null;
+  appState.latestNormalizedAnswer = null;
+  appState.latestSelectedOption = null;
+  appState.currentQuestionSource = null;
+  appState.conversationHistory = [];
+  appState.activeQuestionId = null;
+  appState.latestAnswerQuestionId = null;
+  appState.documents = [];
+  appState.voice = { status: 'IDLE', transcript: null, matchedSlot: null };
+
+  // Trigger all module-level reset handlers synchronously
+  resetCallbacks.forEach((fn) => {
+    try { fn(); } catch (e) { console.error('[State] Reset callback error:', e); }
+  });
+
+  if (notify) {
+    notifyStateChange('clinicalReset');
+  }
+}
+
 export function resetSession(notify = true) {
   appState.sessionId = `MK-${Date.now().toString().slice(-6)}`;
   appState.backendSessionId = null;
@@ -117,6 +165,8 @@ export function resetSession(notify = true) {
   appState.latestSelectedOption = null;
   appState.currentQuestionSource = null;
   appState.conversationHistory = [];
+  appState.activeQuestionId = null;
+  appState.latestAnswerQuestionId = null;
   appState.documents = [];
   appState.voice = { status: 'IDLE', transcript: null, matchedSlot: null };
   appState.lastInteractionTime = Date.now();
@@ -126,14 +176,10 @@ export function resetSession(notify = true) {
     sessionStorage.removeItem('medikiosk_patient_session');
   }
 
-  // Clear patient review cache and conversation state
-  import('./screens/patientReview.js').then((m) => {
-    if (m.resetPatientReviewSummary) m.resetPatientReviewSummary();
-  }).catch(() => {});
-
-  import('./screens/conversation.js').then((m) => {
-    if (m.resetConversationIndex) m.resetConversationIndex();
-  }).catch(() => {});
+  // Trigger all module-level reset handlers synchronously
+  resetCallbacks.forEach((fn) => {
+    try { fn(); } catch (e) { console.error('[State] Reset callback error:', e); }
+  });
 
   if (notify) {
     notifyStateChange('reset');

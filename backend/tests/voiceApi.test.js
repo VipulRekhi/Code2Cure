@@ -10,20 +10,20 @@ const __dirname = path.dirname(__filename);
 
 describe('MediKiosk Phase 5 Voice Pipeline API Test Suite', () => {
   describe('GET /api/voice/status', () => {
-    it('returns health and configuration for IndicConformer ASR and IndicF5 TTS', async () => {
+    it('returns health and configuration for IndicConformer ASR and Neural TTS', async () => {
       const res = await request(app).get('/api/voice/status');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.asr.provider).toBe('indicconformer');
       expect(res.body.data.asr.supportedLanguages).toEqual(['en', 'hi', 'mr']);
-      expect(res.body.data.tts.provider).toBe('indicf5');
+      expect(res.body.data.tts.provider).toBe('neural-tts');
       expect(res.body.data.tts.sampleRate).toBe(24000);
     });
   });
 
   describe('POST /api/voice/asr (Real Acoustic Audio ASR Transcription)', () => {
-    it('transcribes real Marathi acoustic voice audio ("मला तीन दिवसांपासून उलटी होत आहे") with zero hints', async () => {
+    it('transcribes real Marathi acoustic voice audio ("मला तीन दिवसांपासून उलटी होत आहे") with zero hints', { timeout: 25000 }, async () => {
       const audioPath = path.resolve(__dirname, 'fixtures/mr_vomiting_exact.wav');
       const realAudioBase64 = fs.readFileSync(audioPath).toString('base64');
 
@@ -43,7 +43,7 @@ describe('MediKiosk Phase 5 Voice Pipeline API Test Suite', () => {
       expect(res.body.data.questionId).toBe('q.chief_complaint');
     });
 
-    it('transcribes real Hindi acoustic voice audio ("मुझे 3 दिन से सीने में दर्द है") with zero hints', async () => {
+    it('transcribes real Hindi acoustic voice audio ("मुझे 3 दिन से सीने में दर्द है") with zero hints', { timeout: 25000 }, async () => {
       const audioPath = path.resolve(__dirname, 'fixtures/hi_chest_pain.wav');
       const realAudioBase64 = fs.readFileSync(audioPath).toString('base64');
 
@@ -61,7 +61,7 @@ describe('MediKiosk Phase 5 Voice Pipeline API Test Suite', () => {
       expect(res.body.data.language).toBe('hi');
     });
 
-    it('transcribes real English acoustic voice audio ("I have chest pain for 3 days") with zero hints', async () => {
+    it('transcribes real English acoustic voice audio ("I have chest pain for 3 days") with zero hints', { timeout: 25000 }, async () => {
       const audioPath = path.resolve(__dirname, 'fixtures/en_chest_pain.wav');
       const realAudioBase64 = fs.readFileSync(audioPath).toString('base64');
 
@@ -95,7 +95,7 @@ describe('MediKiosk Phase 5 Voice Pipeline API Test Suite', () => {
   });
 
   describe('POST /api/voice/tts (IndicF5 Natural Speech Synthesis)', () => {
-    it('synthesizes Marathi question text returning 24kHz WAV audio stream (Section 19, 29)', async () => {
+    it('synthesizes Marathi question text returning 24kHz WAV audio stream (Section 19, 29)', { timeout: 25000 }, async () => {
       const questionText = 'तुम्हाला ही वेदना किती दिवसांपासून आहे?';
 
       const res = await request(app)

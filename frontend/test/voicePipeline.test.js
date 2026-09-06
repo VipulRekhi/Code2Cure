@@ -1,22 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ttsService, IndicF5TTSProvider, BrowserTTSProvider } from '../js/services/ttsService.js';
+import { ttsService, NeuralTTSProvider, BrowserTTSProvider } from '../js/services/ttsService.js';
 import { speechService } from '../js/services/speechService.js';
 import { api } from '../js/api.js';
 
-describe('MediKiosk Phase 5 Voice Pipeline Frontend Test Suite', () => {
+describe('MediKiosk Voice Pipeline Frontend Test Suite', () => {
   beforeEach(() => {
     ttsService.stop();
     speechService.stopListening();
     vi.restoreAllMocks();
   });
 
-  describe('IndicF5 TTS Service (Section 19 - 33)', () => {
-    it('initializes with IndicF5TTSProvider as primary voice provider', () => {
-      expect(ttsService.provider).toBeInstanceOf(IndicF5TTSProvider);
-      expect(ttsService.provider.name).toBe('indicf5-tts');
+  describe('Neural TTS Service', () => {
+    it('initializes with NeuralTTSProvider as primary voice provider', () => {
+      expect(ttsService.provider).toBeInstanceOf(NeuralTTSProvider);
+      expect(ttsService.provider.name).toBe('neural-tts');
     });
 
-    it('synthesizes speech through IndicF5 provider fetching 24kHz audio', async () => {
+    it('synthesizes speech through neural provider fetching 24kHz audio', async () => {
       // Mock backend TTS response
       vi.spyOn(global, 'fetch').mockResolvedValueOnce({
         ok: true,
@@ -50,7 +50,7 @@ describe('MediKiosk Phase 5 Voice Pipeline Frontend Test Suite', () => {
       });
 
       expect(res.success).toBe(true);
-      expect(res.provider).toBe('indicf5-tts');
+      expect(res.provider).toBe('neural-tts');
     });
 
     it('immediately stops TTS playback on stop() without throwing errors (Section 43)', () => {
@@ -66,7 +66,7 @@ describe('MediKiosk Phase 5 Voice Pipeline Frontend Test Suite', () => {
       expect(ttsService.isSpeaking).toBe(false);
     });
 
-    it('falls back to BrowserTTSProvider seamlessly if IndicF5 network call fails (Section 34)', async () => {
+    it('falls back to BrowserTTSProvider seamlessly if neural network call fails', async () => {
       vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
 
       const fallbackSpeak = vi.spyOn(ttsService.provider.fallback, 'speak').mockResolvedValueOnce({

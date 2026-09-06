@@ -23,6 +23,12 @@ export const CLINICAL_CONCEPTS = {
     labels: { en: 'Knee Pain / Discomfort', hi: 'घुटने में दर्द', mr: 'गुडघेदुखी / गुडघ्यात वेदना' },
     attributes: ['presence', 'status', 'location', 'onset', 'duration', 'severity', 'injury', 'swelling', 'mobility', 'locking'],
   },
+  'symptom.pain.shoulder': {
+    code: 'symptom.pain.shoulder',
+    category: 'symptom',
+    labels: { en: 'Shoulder Pain / Discomfort', hi: 'कंधे में दर्द / जकड़न', mr: 'खांदेदुखी / खांद्यात वेदना' },
+    attributes: ['presence', 'status', 'location', 'onset', 'duration', 'severity', 'injury', 'mobility', 'stiffness', 'movementAggravation'],
+  },
   'symptom.pain.abdominal': {
     code: 'symptom.pain.abdominal',
     category: 'symptom',
@@ -70,6 +76,12 @@ export const CLINICAL_CONCEPTS = {
     category: 'symptom',
     labels: { en: 'Breathing Difficulty', hi: 'सांस लेने में तकलीफ', mr: 'श्वास घेण्यास त्रास' },
     attributes: ['presence', 'status', 'onset', 'duration', 'severity', 'orthopnea'],
+  },
+  'symptom.sweating': {
+    code: 'symptom.sweating',
+    category: 'symptom',
+    labels: { en: 'Sweating / Diaphoresis', hi: 'पसीना आना', mr: 'घाम येणे' },
+    attributes: ['presence', 'status', 'severity', 'coldSweat'],
   },
   'symptom.headache': {
     code: 'symptom.headache',

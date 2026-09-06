@@ -4,7 +4,7 @@
  */
 
 import { t } from '../i18n.js';
-import { appState, notifyStateChange } from '../state.js';
+import { appState, notifyStateChange, registerResetCallback } from '../state.js';
 import { router } from '../router.js';
 import { api } from '../api.js';
 import { ttsService } from '../services/ttsService.js';
@@ -17,12 +17,18 @@ let currentProgress = null;
 let isInitializing = false;
 let fallbackIndex = 0;
 
-export function resetConversationIndex() {
+export function resetConversationState() {
   currentBackendQuestion = null;
   currentProgress = null;
   isInitializing = false;
   fallbackIndex = 0;
 }
+export const resetConversationIndex = resetConversationState;
+
+// Register synchronous reset handler
+registerResetCallback(() => {
+  resetConversationState();
+});
 
 export function renderConversationScreen() {
   const lang = appState.language;
@@ -52,7 +58,20 @@ export function renderConversationScreen() {
     qId = currentBackendQuestion.id;
     qText = currentBackendQuestion.text;
     qInputType = currentBackendQuestion.inputType;
-    qOptions = currentBackendQuestion.options || [];
+    qOptions = (currentBackendQuestion.options || []).map((opt) => {
+      if (typeof opt === 'object' && opt !== null) {
+        return {
+          value: opt.value ?? opt.id ?? opt.label ?? opt,
+          label: opt.label || opt.labels?.[lang] || opt.labels?.mr || opt.labels?.en || opt.value || String(opt),
+          icon: opt.icon || '👉',
+        };
+      }
+      return {
+        value: opt,
+        label: String(opt),
+        icon: '👉',
+      };
+    });
   } else {
     // Fallback static question
     const fallbackNode = MOCK_QUESTION_FLOW[fallbackIndex] || MOCK_QUESTION_FLOW[0];
@@ -65,6 +84,8 @@ export function renderConversationScreen() {
       icon: opt.icon,
     }));
   }
+
+  appState.activeQuestionId = qId;
 
   // Render Options
   const optionsHtml = qOptions
@@ -151,8 +172,14 @@ export function renderConversationScreen() {
           if (!selectedOption) return;
 
           tile.classList.add('selected');
-          appState.latestPatientResponseTranscript = selectedOption.label;
-          await handleAnswerSubmission(selectedOption.value, 'TOUCH');
+          const chosenLabel = typeof selectedOption === 'object' && selectedOption !== null
+            ? (selectedOption.label || selectedOption.value)
+            : String(selectedOption);
+          const chosenValue = typeof selectedOption === 'object' && selectedOption !== null
+            ? (selectedOption.value ?? selectedOption.id ?? selectedOption.label)
+            : selectedOption;
+          appState.latestPatientResponseTranscript = chosenLabel;
+          await handleAnswerSubmission(chosenValue, 'TOUCH');
         });
       });
 
@@ -160,15 +187,50 @@ export function renderConversationScreen() {
       document.getElementById('btn-voice-mic')?.addEventListener('click', () => {
         ttsService.stop();
 
+        if (speechService.isListening()) {
+          speechService.stopListening();
+          return;
+        }
+
+        const micBtn = document.getElementById('btn-voice-mic');
+        const statusText = document.querySelector('.voice-status-text');
+
         speechService.startListening(
           appState.language,
-          ({ status, transcript }) => {
+          ({ status, transcript, message }) => {
             appState.voice.status = status;
-            if (transcript) {
+
+            if (status === 'LISTENING') {
+              if (micBtn) micBtn.classList.add('listening');
+              if (statusText) statusText.textContent = t('tapListening', lang) || 'Listening... (Tap to stop)';
+              return;
+            }
+
+            if (status === 'PROCESSING') {
+              if (micBtn) {
+                micBtn.classList.remove('listening');
+                micBtn.setAttribute('disabled', 'true');
+              }
+              if (statusText) statusText.textContent = t('processingVoice', lang) || 'Processing speech...';
+              return;
+            }
+
+            if (status === 'RECOGNIZED' && transcript) {
               appState.voice.transcript = transcript;
+              notifyStateChange('voice');
+              router.renderCurrentScreen();
+              return;
+            }
+
+            // IDLE or error state
+            if (micBtn) {
+              micBtn.classList.remove('listening');
+              micBtn.removeAttribute('disabled');
+            }
+            if (statusText) {
+              statusText.textContent = message || t('speakAnswer', lang);
             }
             notifyStateChange('voice');
-            router.renderCurrentScreen();
           },
           {
             questionId: qId,
@@ -220,6 +282,7 @@ async function initBackendSession(lang) {
       let complaintValue = null;
       if (appState.complaint?.id === 'DIARRHEA') complaintValue = 'diarrhea';
       else if (appState.complaint?.id === 'KNEE_PAIN') complaintValue = 'knee_pain';
+      else if (appState.complaint?.id === 'SHOULDER_PAIN') complaintValue = 'shoulder_pain';
       else if (appState.complaint?.id === 'CHEST_PAIN') complaintValue = 'chest_pain';
       else if (appState.complaint?.id === 'FEVER') complaintValue = 'fever';
       else if (appState.complaint?.id === 'COUGH') complaintValue = 'cough';
@@ -246,6 +309,19 @@ async function initBackendSession(lang) {
           if (sum.severity) appState.complaint.severity = sum.severity;
           if (sum.location) appState.complaint.location = sum.location;
         }
+
+        // Store chief complaint turn into conversation history (Phase 7 Section 11)
+        const ccQuestionText = lang === 'mr' ? 'तुम्हाला काय त्रास होतोय?' : lang === 'hi' ? 'आपको क्या तकलीफ हो रही है?' : 'What problem are you experiencing?';
+        appState.conversationHistory = [{
+          questionId: 'q.chief_complaint',
+          questionText: ccQuestionText,
+          patientResponse: appState.complaint?.textPatientSpoken || complaintValue,
+          originalTranscript: isSpoken ? appState.complaint.textPatientSpoken : null,
+          normalizedAnswer: recordRes.data?.recorded || complaintValue,
+          selectedOption: appState.complaint?.textPatientSpoken || complaintValue,
+          inputMethod: isSpoken ? 'VOICE' : 'TOUCH',
+          timestamp: new Date().toISOString(),
+        }];
         if (recordRes.data?.next?.question) {
           currentBackendQuestion = recordRes.data.next.question;
           currentProgress = recordRes.data.next.progress;
@@ -272,6 +348,7 @@ async function initBackendSession(lang) {
 async function handleAnswerSubmission(value, inputMethod) {
   // If connected to backend question engine:
   if (appState.backendSessionId && currentBackendQuestion) {
+    appState.latestAnswerQuestionId = currentBackendQuestion.id;
     try {
       const isVoice = inputMethod === 'VOICE';
       const recordRes = await api.recordClinicalResponse(appState.backendSessionId, {
@@ -281,6 +358,21 @@ async function handleAnswerSubmission(value, inputMethod) {
         inputMethod,
         language: appState.language,
       });
+
+      // Handle Stale Question Submission (HTTP 409)
+      if (recordRes?.status === 409 || recordRes?.error === 'STALE_QUESTION_SUBMISSION') {
+        console.warn('[Conversation] Stale question submission detected. Re-synchronizing active question...');
+        const refreshRes = await api.getNextClinicalQuestion(appState.backendSessionId, appState.language);
+        if (refreshRes?.data?.question) {
+          currentBackendQuestion = refreshRes.data.question;
+          appState.activeQuestionId = currentBackendQuestion.id;
+          currentProgress = refreshRes.data.progress;
+          appState.currentQuestionSource = currentBackendQuestion.source || 'LLM_DYNAMIC';
+        }
+        notifyStateChange('conversation');
+        router.renderCurrentScreen();
+        return;
+      }
 
       if (recordRes?.success) {
         // Sync authoritative state from clinical summary
@@ -292,43 +384,60 @@ async function handleAnswerSubmission(value, inputMethod) {
           if (sum.location) appState.complaint.location = sum.location;
         }
 
+        // If patient gave incidental info without answering active question:
+        if (recordRes.data?.answersCurrentQuestion === false) {
+          appState.latestNormalizedAnswer = 'INCIDENTAL_FACT_RECORDED';
+          appState.latestSelectedOption = null;
+          notifyStateChange('conversation');
+          router.renderCurrentScreen();
+          return;
+        }
+
         // Determine mapped option and normalized answer
         const selectedOption = recordRes.data?.selectedOption;
         const mappedLabel =
-          typeof selectedOption === 'object'
+          typeof selectedOption === 'object' && selectedOption !== null
             ? (selectedOption.label || selectedOption.value)
             : selectedOption;
 
         appState.latestSelectedOption =
-          mappedLabel || (typeof value === 'object' ? JSON.stringify(value) : String(value));
+          mappedLabel || (typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value ?? ''));
 
         if (recordRes.data?.recorded?.attribute) {
           appState.latestNormalizedAnswer = `${recordRes.data.recorded.attribute} = ${recordRes.data.recorded.value}`;
         } else if (recordRes.data?.recorded) {
           appState.latestNormalizedAnswer = JSON.stringify(recordRes.data.recorded);
+        } else {
+          appState.latestNormalizedAnswer = String(recordRes.data?.recorded?.value ?? value ?? 'null');
         }
 
-        // Store turn in conversation history (Section 8, 15)
+        // Store turn in conversation history (Section 8, 15, Phase 7 Section 11)
         appState.conversationHistory.push({
           questionId: currentBackendQuestion.id,
           questionText: currentBackendQuestion.text,
           patientResponse: value,
+          originalTranscript: isVoice && typeof value === 'string' ? value : null,
           normalizedAnswer: recordRes.data?.recorded || null,
           selectedOption: appState.latestSelectedOption,
+          inputMethod,
+          options: currentBackendQuestion.options || [],
           timestamp: new Date().toISOString(),
         });
 
         // Visual feedback: brief selection flash on matching tile (Section 1)
         if (selectedOption && currentBackendQuestion.options) {
           const matchIdx = currentBackendQuestion.options.findIndex((opt) => {
-            const optVal = typeof opt === 'object' ? (opt.value ?? opt.id ?? opt) : opt;
-            const optLbl = typeof opt === 'object' ? (opt.label || '') : String(opt);
-            const sVal = typeof selectedOption === 'object' ? (selectedOption.value ?? selectedOption.id ?? selectedOption) : selectedOption;
+            const optVal = typeof opt === 'object' && opt !== null ? (opt.value ?? opt.id ?? opt) : opt;
+            const optLbl = typeof opt === 'object' && opt !== null ? (opt.label || opt.labels?.mr || opt.labels?.en || opt.value || '') : String(opt ?? '');
+            const sVal = typeof selectedOption === 'object' && selectedOption !== null ? (selectedOption.value ?? selectedOption.id ?? selectedOption) : selectedOption;
+            const sValStr = String(sVal ?? '').toLowerCase().trim();
+            const optValStr = String(optVal ?? '').toLowerCase().trim();
+            const optLblStr = String(optLbl ?? '').toLowerCase().trim();
             return (
               optVal === sVal ||
-              optVal === selectedOption ||
-              optLbl === selectedOption ||
-              (typeof selectedOption === 'string' && optLbl && optLbl.toLowerCase().includes(selectedOption.toLowerCase()))
+              optValStr === sValStr ||
+              optLblStr === sValStr ||
+              (sValStr && optLblStr.includes(sValStr))
             );
           });
           if (matchIdx !== -1) {
@@ -348,49 +457,36 @@ async function handleAnswerSubmission(value, inputMethod) {
         currentBackendQuestion = nextResult?.question;
         currentProgress = nextResult?.progress;
         appState.currentQuestionSource = currentBackendQuestion?.source || 'LLM_DYNAMIC';
+        appState.activeQuestionId = currentBackendQuestion?.id || null;
+        notifyStateChange('conversation');
+        router.renderCurrentScreen();
+        return;
+      } else {
+        // Extraction failed or unverified: DO NOT advance question! Keep on current question.
+        appState.latestNormalizedAnswer = 'UNVERIFIED_VOICE';
+        appState.latestSelectedOption = null;
         notifyStateChange('conversation');
         router.renderCurrentScreen();
         return;
       }
     } catch (e) {
-      console.warn('[Conversation] Answer recording fallback:', e);
+      console.warn('[Conversation] Answer recording error:', e);
+      appState.latestNormalizedAnswer = 'ERROR';
+      appState.latestSelectedOption = null;
+      notifyStateChange('conversation');
+      router.renderCurrentScreen();
+      return;
     }
   }
 
-  // Fallback progression if offline or error
-  if (currentBackendQuestion) {
-    const attr = currentBackendQuestion.attribute;
-    if (attr === 'location') {
-      appState.complaint.location = typeof value === 'object' ? value.value || value : value;
+  // Fallback progression ONLY if offline / zero backendSessionId
+  if (!appState.backendSessionId) {
+    if (fallbackIndex < MOCK_QUESTION_FLOW.length - 1) {
+      fallbackIndex++;
+      router.renderCurrentScreen();
+    } else {
+      fallbackIndex = 0;
+      router.navigate('documents');
     }
-    if (attr === 'duration') {
-      if (typeof value === 'object' && (value.amount || value.value)) {
-        appState.complaint.duration = {
-          value: value.amount ?? value.value,
-          unit: value.unit || 'days',
-        };
-      } else if (typeof value === 'number') {
-        appState.complaint.duration = { value, unit: 'days' };
-      } else {
-        appState.complaint.duration = value;
-      }
-    }
-    if (attr === 'severity') {
-      const valStr = String(value).toUpperCase();
-      if (valStr.includes('MILD') || valStr.includes('कमी') || valStr.includes('हल्का')) appState.complaint.severity = 'MILD';
-      else if (valStr.includes('MODERATE') || valStr.includes('मध्यम')) appState.complaint.severity = 'MODERATE';
-      else if (valStr.includes('SEVERE') || valStr.includes('तीव्र') || valStr.includes('तेज')) appState.complaint.severity = 'SEVERE';
-      else if (valStr.includes('UNBEARABLE') || valStr.includes('असह्य')) appState.complaint.severity = 'UNBEARABLE';
-      else appState.complaint.severity = value;
-    }
-  }
-
-  // Fallback progression if offline or error
-  if (fallbackIndex < MOCK_QUESTION_FLOW.length - 1) {
-    fallbackIndex++;
-    router.renderCurrentScreen();
-  } else {
-    fallbackIndex = 0;
-    router.navigate('documents');
   }
 }

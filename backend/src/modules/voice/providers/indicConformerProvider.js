@@ -4,6 +4,7 @@
  */
 
 import { voiceConfig } from '../voiceConfig.js';
+import { isServiceReachable } from '../socketProbe.js';
 
 export const indicConformerProvider = {
   name: 'indicconformer-asr-provider',
@@ -11,43 +12,61 @@ export const indicConformerProvider = {
   async transcribe({ audioBuffer, base64Audio, language = 'mr', activeQuestion = null, requestId = null, sessionId = null }) {
     const startTime = Date.now();
     const endpoint = voiceConfig.asr.endpoint;
-    const timeoutMs = voiceConfig.asr.timeoutMs;
 
+    let payloadBase64 = base64Audio;
+    if (!payloadBase64 && audioBuffer) {
+      payloadBase64 = audioBuffer.toString('base64');
+    }
+
+    if (!payloadBase64 || payloadBase64.length < 16) {
+      return {
+        success: false,
+        error: 'EMPTY_AUDIO',
+        message: "I couldn't hear you. Please try speaking again.",
+        transcript: '',
+        confidence: 0,
+        latency: Date.now() - startTime,
+        requestId,
+        sessionId,
+      };
+    }
+
+    // Fast connectivity probe (<250ms) to prevent 10-second blocking when runtime is offline
+    const isReachable = await isServiceReachable(endpoint, 250);
+    if (!isReachable) {
+      console.warn(`[IndicConformer] ASR service offline at ${endpoint}. Fast fail-over to client speech recognition (<10ms).`);
+      return {
+        success: false,
+        error: 'ASR_SERVICE_OFFLINE',
+        message: 'IndicConformer speech recognition runtime is offline at port 8001. Engaging client speech recognition.',
+        transcript: '',
+        requestId,
+        sessionId,
+        latency: Date.now() - startTime,
+      };
+    }
+
+    const timeoutMs = voiceConfig.asr.timeoutMs;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      let payloadBase64 = base64Audio;
-      if (!payloadBase64 && audioBuffer) {
-        payloadBase64 = audioBuffer.toString('base64');
-      }
-
-      if (!payloadBase64 || payloadBase64.length < 16) {
-        return {
-          success: false,
-          error: 'EMPTY_AUDIO',
-          message: "I couldn't hear you. Please try speaking again.",
-          transcript: '',
-          confidence: 0,
-          latency: Date.now() - startTime,
-          requestId,
-          sessionId,
-        };
-      }
+      const payloadStr = JSON.stringify({
+        audio_base64: payloadBase64,
+        language: language,
+        sample_rate: voiceConfig.asr.sampleRate,
+        question_context: activeQuestion ? activeQuestion.id : null,
+        requestId,
+        sessionId,
+      });
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Content-Length': String(Buffer.byteLength(payloadStr)),
         },
-        body: JSON.stringify({
-          audio_base64: payloadBase64,
-          language: language,
-          sample_rate: voiceConfig.asr.sampleRate,
-          question_context: activeQuestion ? activeQuestion.id : null,
-          requestId,
-          sessionId,
-        }),
+        body: payloadStr,
         signal: controller.signal,
       });
 

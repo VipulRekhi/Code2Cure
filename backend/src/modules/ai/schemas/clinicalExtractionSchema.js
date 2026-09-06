@@ -20,4 +20,5 @@ export const extractionItemSchema = z.object({
 
 export const clinicalExtractionSchema = z.object({
   extractions: z.array(extractionItemSchema),
-});
+  answersCurrentQuestion: z.boolean().optional(),
+}).passthrough();

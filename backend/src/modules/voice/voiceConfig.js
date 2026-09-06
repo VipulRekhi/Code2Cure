@@ -20,14 +20,17 @@ export const voiceConfig = {
     minAudioDurationSec: 0.4, // Reject empty or click noises
   },
 
-  // TTS Configuration (IndicF5)
+  // TTS Configuration (Multilingual Neural TTS)
   tts: {
-    provider: process.env.TTS_PROVIDER || 'indicf5',
-    mode: process.env.TTS_MODE || 'mock', // 'indicf5' | 'mock'
+    provider: process.env.TTS_PROVIDER || 'neural-tts',
+    mode: process.env.TTS_MODE || 'neural-tts', // 'neural-tts' | 'mock'
     endpoint: process.env.TTS_ENDPOINT || 'http://127.0.0.1:8001/tts',
+    marathiProvider: process.env.TTS_MARATHI_PROVIDER || 'mr-IN-AarohiNeural / facebook/mms-tts-mar',
+    hindiProvider: process.env.TTS_HINDI_PROVIDER || 'hi-IN-SwaraNeural / facebook/mms-tts-hin',
+    englishProvider: process.env.TTS_ENGLISH_PROVIDER || 'en-IN-NeerjaNeural / facebook/mms-tts-eng',
     timeoutMs: parseInt(process.env.TTS_TIMEOUT_MS || '12000', 10),
-    sampleRate: 24000, // IndicF5 official output rate
-    channels: 1,
+    sampleRate: 24000, // 24kHz standard studio quality
+    channels: 1, // Mono
     supportedLanguages: ['en', 'hi', 'mr'],
     cacheEnabled: true, // Application-level caching for static question IDs
   },

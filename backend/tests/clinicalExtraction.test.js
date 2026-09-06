@@ -520,7 +520,7 @@ describe('MediKiosk Phase 4 Clinical Slot Extraction Test Suite', () => {
     });
 
     it('SECTION 6 QUALIFIED ANSWERS: Preserves specific radiation sites and qualifiers', async () => {
-      const armRes = await clinicalExtractionService.extract('yes pain goes to my arm', radiationQuestion);
+      const armRes = await clinicalExtractionService.extract('yes pain goes to my left arm', radiationQuestion);
       expect(armRes.success).toBe(true);
       expect(armRes.value).toBe('LEFT_ARM');
       expect(armRes.mappedOption).toBe('yes_spreads');

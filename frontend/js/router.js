@@ -3,7 +3,7 @@
  * Manages transitions, forward/backward history preservation, and screen rendering.
  */
 
-import { appState, notifyStateChange } from './state.js';
+import { appState, notifyStateChange, resetClinicalSession } from './state.js';
 import { renderHeader } from './components/header.js';
 import { renderProgress } from './components/progress.js';
 import { t } from './i18n.js';
@@ -75,6 +75,15 @@ class Router {
   back() {
     if (appState.historyStack.length > 0) {
       const previous = appState.historyStack.pop();
+      if (
+        previous === 'chiefComplaint' ||
+        previous === 'opdSelection' ||
+        previous === 'welcome' ||
+        previous === 'consent' ||
+        previous === 'identify'
+      ) {
+        resetClinicalSession(false);
+      }
       appState.currentScreen = previous;
       notifyStateChange('screen');
       this.renderCurrentScreen();

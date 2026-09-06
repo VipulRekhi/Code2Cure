@@ -91,6 +91,93 @@ export const api = {
     }
   },
 
+  async getExaminationHistory(sessionId, lang = 'mr') {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/examination-history?lang=${lang}`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to fetch examination history:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateClinicalResponse(sessionId, questionId, updateData) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/responses/${questionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to update response:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async submitToDoctor(sessionId) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to dispatch to doctor:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async resetClinicalSessionBackend(sessionId) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ----------------------------------------------------
+  // Phase 7: Medical Document & OCR Endpoints
+  // ----------------------------------------------------
+  async uploadDocument(sessionId, documentData) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(documentData),
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to upload document:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getSessionDocuments(sessionId) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/documents`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to get session documents:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async deleteDocument(sessionId, docId) {
+    try {
+      const response = await fetch(`${API_BASE}/clinical/sessions/${sessionId}/documents/${docId}`, {
+        method: 'DELETE',
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
   // ----------------------------------------------------
   // Phase 5: Multilingual Voice Pipeline (ASR & TTS)
   // ----------------------------------------------------
@@ -131,5 +218,6 @@ export const api = {
     }
   },
 };
+
 
 

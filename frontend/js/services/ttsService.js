@@ -394,9 +394,8 @@ export class BrowserTTSProvider {
 
         if (voice) {
           utterance.voice = voice;
-          utterance.lang = status.isFallback
-            ? (lang === 'mr' ? 'mr-IN' : lang === 'hi' ? 'hi-IN' : voice.lang)
-            : voice.lang;
+          // Set utterance.lang to match voice.lang so Chromium does not discard selected Devanagari voice
+          utterance.lang = voice.lang || (lang === 'mr' ? 'hi-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN');
         } else {
           utterance.lang = lang === 'mr' ? 'mr-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
         }
@@ -441,22 +440,23 @@ export class BrowserTTSProvider {
 }
 
 /**
- * AI4Bharat IndicF5 TTS Provider (Phase 5 Sovereign Voice Pipeline)
- * Fetches high-quality 24kHz natural Indian language speech from the backend IndicF5 service
+ * Multilingual Neural TTS Provider
+ * Fetches high-quality 24kHz natural Indian language speech from the backend neural TTS service
  * and plays via HTML5 Audio / Web Audio API with instant stop/cancellation.
  */
-export class IndicF5TTSProvider {
+export class NeuralTTSProvider {
   constructor(fallbackProvider = null) {
-    this.name = 'indicf5-tts';
+    this.name = 'neural-tts';
     this.fallback = fallbackProvider || new BrowserTTSProvider();
     this.currentAudio = null;
+    this.lastDiagnostics = null;
   }
 
   async speak(text, language = 'mr', options = {}) {
     try {
       this.stop();
 
-      // Request IndicF5 synthesized audio from backend
+      // Fast request synthesized neural audio from backend
       const res = await fetch('/api/voice/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -472,7 +472,15 @@ export class IndicF5TTSProvider {
       }
 
       const data = await res.json();
+      if (data.diagnostics) {
+        this.lastDiagnostics = data.diagnostics;
+      }
+
       if (!data.success || !data.data?.audioBase64) {
+        if (data.fallbackToBrowser) {
+          console.info(`[NeuralTTS Provider] Backend fallbackToBrowser active (${data.error}). Diagnostic:`, data.diagnostics);
+          return await this.fallback.speak(text, language, options);
+        }
         throw new Error(data.error || 'No audio payload in TTS response');
       }
 
@@ -482,28 +490,33 @@ export class IndicF5TTSProvider {
       const audio = new Audio(audioSrc);
       this.currentAudio = audio;
 
-      console.log(`[TTS] Playing authentic neural speech via ${data.data.provider || 'indicf5'} (${language}, ${data.data.audioBase64.length} b64 chars)`);
+      console.log(`[TTS] Playing authentic neural speech via ${data.data.provider || 'neural-tts'} (${language}, ${data.data.audioBase64.length} b64 chars)`);
 
       return new Promise((resolve) => {
         audio.onended = () => {
           this.currentAudio = null;
-          resolve({ success: true, provider: 'indicf5-tts', cached: data.data?.cached || false });
+          resolve({
+            success: true,
+            provider: 'neural-tts',
+            cached: data.data?.cached || false,
+            diagnostics: data.data?.diagnostics || this.lastDiagnostics,
+          });
         };
 
         audio.onerror = (err) => {
-          console.warn('[IndicF5 Provider] Audio playback error, engaging browser speech synthesis fallback:', err);
+          console.warn('[NeuralTTS Provider] Audio playback error, engaging emergency browser fallback:', err);
           this.currentAudio = null;
           this.fallback.speak(text, language, options).then(resolve);
         };
 
         audio.play().catch((playErr) => {
-          console.warn('[IndicF5 Provider] Play error (autoplay blocked or audio error), engaging browser speech synthesis fallback:', playErr);
+          console.warn('[NeuralTTS Provider] Play error (autoplay policy or audio error), engaging emergency browser fallback:', playErr);
           this.currentAudio = null;
           this.fallback.speak(text, language, options).then(resolve);
         });
       });
     } catch (err) {
-      console.info('[IndicF5 Provider] IndicF5 server speech unavailable, using browser speech synthesis:', err.message);
+      console.info('[NeuralTTS Provider] Neural server speech unavailable, using emergency browser speech synthesis:', err.message);
       return await this.fallback.speak(text, language, options);
     }
   }
@@ -525,18 +538,17 @@ export class IndicF5TTSProvider {
     return {
       supported: true,
       status: 'optimal',
-      provider: 'indicf5',
-      model: 'ai4bharat/indicf5',
+      provider: 'neural-tts',
       sampleRate: 24000,
     };
   }
 
   getNativeVoice(language = 'mr') {
-    return { name: `IndicF5 ${language.toUpperCase()} Neural Voice`, lang: `${language}-IN` };
+    return { name: `Neural ${language.toUpperCase()} Voice`, lang: `${language}-IN` };
   }
 
   getBestVoice(language = 'mr', allowFallback = true) {
-    return { name: `IndicF5 ${language.toUpperCase()} Voice`, lang: `${language}-IN`, quality: 'natural' };
+    return { name: `Neural ${language.toUpperCase()} Voice`, lang: `${language}-IN`, quality: 'natural' };
   }
 
   processUtterances(text) {
@@ -544,14 +556,17 @@ export class IndicF5TTSProvider {
   }
 }
 
+// Backward compatibility export alias
+export const IndicF5TTSProvider = NeuralTTSProvider;
+
 /**
- * Centralized TTS Service Abstraction (Section 18 & Phase 5 IndicF5)
+ * Centralized TTS Service Abstraction
  */
 class TTSService {
   constructor() {
     const browserFallback = new BrowserTTSProvider();
-    // Default to IndicF5 neural synthesis with browser synthesis fallback
-    this.provider = new IndicF5TTSProvider(browserFallback);
+    // Default to Multilingual Neural TTS with emergency browser synthesis fallback
+    this.provider = new NeuralTTSProvider(browserFallback);
     this.isSpeaking = false;
     this.listeners = new Set();
   }

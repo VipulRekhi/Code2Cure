@@ -47,7 +47,7 @@ class DynamicQuestionService {
     const locationVal = sessionState?.collectedFacts?.['symptom.pain.location']?.value;
 
     // If primary concern is generic unlocalized pain without any known location, delegate to catalog to ask location
-    if (concern === 'pain' && !locationVal && !sessionState?.collectedFacts?.['symptom.pain.knee.location'] && !sessionState?.collectedFacts?.['symptom.pain.chest.location']) {
+    if (concern === 'pain' && !locationVal && !sessionState?.collectedFacts?.['symptom.pain.knee.location'] && !sessionState?.collectedFacts?.['symptom.pain.shoulder.location'] && !sessionState?.collectedFacts?.['symptom.pain.chest.location']) {
       return {
         source: 'DETERMINISTIC_FALLBACK',
         shouldAskQuestion: true,
@@ -56,6 +56,8 @@ class DynamicQuestionService {
 
     if (concern === 'knee_pain' || locationVal === 'knee' || sessionState?.collectedFacts?.['symptom.pain.knee.location']) {
       primaryConcernStr = 'Knee Pain / Trauma / Joint discomfort';
+    } else if (concern === 'shoulder_pain' || locationVal === 'shoulder' || sessionState?.collectedFacts?.['symptom.pain.shoulder.location'] || sessionState?.collectedFacts?.['symptom.pain.shoulder.presence']) {
+      primaryConcernStr = 'Shoulder Pain / Trauma / Joint stiffness / Movement discomfort';
     } else if (concern === 'chest_pain' || locationVal === 'chest' || sessionState?.collectedFacts?.['symptom.pain.chest.location']) {
       primaryConcernStr = 'Chest Pain / Discomfort';
     } else if (concern === 'stomach' || locationVal === 'abdomen' || sessionState?.collectedFacts?.['symptom.pain.abdominal.location']) {

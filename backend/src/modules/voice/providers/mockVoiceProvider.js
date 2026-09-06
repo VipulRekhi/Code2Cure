@@ -141,31 +141,23 @@ export const mockVoiceProvider = {
           transcript = hint;
         }
       } else if (activeQuestion) {
-        if (activeQuestion.concept === 'symptom.vomiting' || activeQuestion.id?.includes('stomach')) {
+        if (activeQuestion.id === 'q.chief_complaint') {
+          transcript = lang === 'mr' ? 'माझा गुडघा दुखतोय' : lang === 'hi' ? 'मेरे घुटने में दर्द हो रहा है' : 'My knee has been hurting for six or seven days.';
+        } else if (activeQuestion.concept === 'symptom.vomiting' || activeQuestion.id?.includes('stomach')) {
           transcript = langDict.vomit;
         } else if (activeQuestion.concept === 'symptom.fever' || activeQuestion.id?.includes('fever')) {
           transcript = langDict.fever;
+        } else if (activeQuestion.id?.includes('duration')) {
+          transcript = lang === 'mr' ? 'सहा सात दिवसांपासून त्रास होतोय' : lang === 'hi' ? 'छह सात दिनों से दर्द है' : 'For six or seven days';
+        } else if (activeQuestion.id?.includes('severity')) {
+          transcript = lang === 'mr' ? 'जास्त नाही पण मध्यम त्रास आहे' : lang === 'hi' ? 'बहुत ज्यादा नहीं है, मध्यम दर्द है' : 'It is moderate discomfort';
         } else if (activeQuestion.id?.includes('location')) {
           transcript = langDict.chest_pain;
         } else {
-          return {
-            success: false,
-            error: 'SPEECH_UNRECOGNIZED',
-            message: "I couldn't hear you clearly. Please try speaking again or use touch tiles.",
-            transcript: '',
-            confidence: 0,
-            latency: Date.now() - startTime,
-          };
+          transcript = langDict.default;
         }
       } else {
-        return {
-          success: false,
-          error: 'SPEECH_UNRECOGNIZED',
-          message: "I couldn't hear you clearly. Please try speaking again or use touch tiles.",
-          transcript: '',
-          confidence: 0,
-          latency: Date.now() - startTime,
-        };
+        transcript = langDict.default;
       }
     }
 
@@ -199,7 +191,7 @@ export const mockVoiceProvider = {
 
     return {
       success: true,
-      provider: 'mock-indicf5',
+      provider: 'mock-neural-tts',
       language,
       format: 'wav',
       sampleRate: 24000,

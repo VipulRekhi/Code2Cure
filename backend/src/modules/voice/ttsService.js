@@ -1,10 +1,10 @@
 /**
- * Centralized TTS Orchestration Service (Section 19 - 33)
- * Synthesizes natural Indian language speech prompts with question caching and provider fallback.
+ * Centralized TTS Orchestration Service
+ * Synthesizes natural Indian language speech prompts with question caching and provider orchestration.
  */
 
 import { voiceConfig } from './voiceConfig.js';
-import { indicF5Provider } from './providers/indicF5Provider.js';
+import { neuralTTSProvider } from './providers/neuralTTSProvider.js';
 import { mockVoiceProvider } from './providers/mockVoiceProvider.js';
 
 class TTSService {
@@ -15,7 +15,7 @@ class TTSService {
   }
 
   get activeProvider() {
-    return this.config.mode === 'indicf5' ? indicF5Provider : mockVoiceProvider;
+    return this.config.mode === 'mock' ? mockVoiceProvider : neuralTTSProvider;
   }
 
   /**
@@ -34,7 +34,7 @@ class TTSService {
     const cleanText = text.trim();
     const cacheKey = questionId ? `${questionId}_${language}` : null;
 
-    // 1. Check in-memory cache for repeated static questions (Section 31)
+    // 1. Check in-memory cache for repeated static questions
     if (cacheKey && this.config.cacheEnabled && this.audioCache.has(cacheKey)) {
       const cached = this.audioCache.get(cacheKey);
       return {
@@ -42,7 +42,7 @@ class TTSService {
         cached: true,
         provider: 'cache',
         language,
-        format: cached.format || 'mp3',
+        format: cached.format || 'wav',
         sampleRate: this.config.sampleRate,
         audioBuffer: cached.buffer,
         latency: 2,
@@ -56,24 +56,32 @@ class TTSService {
       referenceVoice,
     });
 
-    // 2. Safe Fallback: In unit tests only, fall back to mock provider for byte assertion
-    if (!result.success && this.config.mode === 'indicf5') {
+    // 2. Safe Fallback & Diagnostic propagation for tests
+    if (!result.success && this.config.mode !== 'mock') {
       if (process.env.NODE_ENV === 'test') {
-        console.warn(`[TTS Service] IndicF5 failed (${result.error}). Engaging test fixture synthesizer.`);
+        console.warn(`[TTS Service] Neural TTS failed (${result.error}). Engaging test fixture synthesizer.`);
         result = await mockVoiceProvider.synthesize({ text: cleanText, language });
       } else {
-        console.warn(`[TTS Service] IndicF5 unavailable (${result.error}). Returning failure so frontend engages Browser Web Speech.`);
+        console.warn(`[TTS Service] Neural TTS unavailable (${result.error}).`);
         return {
           success: false,
-          error: result.error,
-          message: 'IndicF5 neural speech runtime is offline. Use browser speech.',
-          fallbackToBrowser: true,
+          error: result.error || 'TTS_OFFLINE',
+          message: result.message || 'Neural speech runtime is offline.',
+          fallbackToBrowser: false,
+          diagnostics: result.diagnostics || {
+            provider: 'neural-tts',
+            language,
+            sampleRate: this.config.sampleRate,
+            format: 'wav',
+            fallback: false,
+            fallbackReason: result.error || 'OFFLINE',
+          },
         };
       }
     }
 
     if (result.success && result.audioBuffer && cacheKey && this.config.cacheEnabled) {
-      this.audioCache.set(cacheKey, { buffer: result.audioBuffer, format: result.format || 'mp3' });
+      this.audioCache.set(cacheKey, { buffer: result.audioBuffer, format: result.format || 'wav' });
     }
 
     return result;

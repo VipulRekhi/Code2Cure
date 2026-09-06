@@ -4,13 +4,13 @@
 
 import { prisma } from '../config/prisma.js';
 import { ClinicalSessionState, QuestionEngine, getQuestionById } from '../modules/questionEngine/index.js';
-import { clinicalExtractionService, mapExtractionToUiOption } from '../modules/ai/index.js';
+import { clinicalExtractionService, mapExtractionToUiOption, matchesQuestionTarget } from '../modules/ai/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 // In-memory active clinical session cache (backed by PostgreSQL / Prisma)
-const activeSessions = new Map();
+export const activeSessions = new Map();
 
-function getOrCreateEngine(sessionRecord) {
+export function getOrCreateEngine(sessionRecord) {
   let sessionState = activeSessions.get(sessionRecord.id);
 
   if (!sessionState) {
@@ -82,6 +82,13 @@ export const clinicalController = {
 
       const engine = getOrCreateEngine(dbSession);
       const firstQuestion = engine.getNextQuestion(language);
+
+      if (firstQuestion?.question) {
+        await prisma.clinicalSession.update({
+          where: { id: dbSession.id },
+          data: { currentQuestionId: firstQuestion.question.id },
+        }).catch(() => {});
+      }
 
       res.status(201).json({
         success: true,
@@ -196,6 +203,31 @@ export const clinicalController = {
       }
 
       const engine = getOrCreateEngine(dbSession);
+
+      // Active Question ID Validation for async Voice Input (Section 40)
+      // Only reject out-of-order submissions if it is an async VOICE submission for a non-active question that is not a revision.
+      const isRevision =
+        Boolean(engine.sessionState.completedQuestionIds?.has(questionId)) ||
+        Boolean(engine.sessionState.responses?.some((r) => r.questionId === questionId));
+      const isVoiceSubmission = inputMethod.toUpperCase() === 'VOICE';
+      if (
+        isVoiceSubmission &&
+        questionId !== 'q.chief_complaint' &&
+        !isRevision &&
+        engine.sessionState.currentQuestionId &&
+        questionId !== engine.sessionState.currentQuestionId
+      ) {
+        return res.status(409).json({
+          success: false,
+          error: 'STALE_QUESTION_SUBMISSION',
+          message: `Submitted voice questionId "${questionId}" does not match active questionId "${engine.sessionState.currentQuestionId}"`,
+          data: {
+            expectedQuestionId: engine.sessionState.currentQuestionId,
+            submittedQuestionId: questionId,
+          },
+        });
+      }
+
       const activeQuestion = engine.getQuestion(questionId) || getQuestionById(questionId);
 
       if (!activeQuestion) {
@@ -222,11 +254,49 @@ export const clinicalController = {
             extractionsCount: extractionResult.extractions.length,
           };
 
+          // If utterance provided incidental facts without answering active question:
+          if (extractionResult.answersCurrentQuestion === false && activeQuestion.id !== 'q.chief_complaint') {
+            for (const extra of extractionResult.extractions) {
+              const extraFactKey = `${extra.concept}.${extra.attribute}`;
+              engine.sessionState.collectedFacts[extraFactKey] = {
+                concept: extra.concept,
+                attribute: extra.attribute,
+                value: extra.value,
+                unit: extra.unit || null,
+                status: extra.status,
+                raw: extra.raw || null,
+                precision: extra.precision || null,
+                source: 'PATIENT_VOICE',
+                confidence: extra.confidence || null,
+                recordedAt: new Date().toISOString(),
+              };
+            }
+
+            return res.status(200).json({
+              success: true,
+              answersCurrentQuestion: false,
+              incidentalFactsRecorded: true,
+              message: 'Incidental symptoms recorded, but active question was not answered. Please answer the active question.',
+              data: {
+                answersCurrentQuestion: false,
+                recorded: null,
+                clinicalSummary: engine.sessionState.getClinicalSummary(),
+                next: {
+                  status: 'question',
+                  question: activeQuestion,
+                  progress: engine.getProgress(),
+                  source: activeQuestion.source || 'LLM_DYNAMIC',
+                },
+              },
+            });
+          }
+
           const targetConcept = activeQuestion.targetConcept || activeQuestion.concept;
           const targetAttribute = activeQuestion.targetAttribute || activeQuestion.attribute;
 
           // Find extraction matching active question
           const primaryExtraction =
+            extractionResult.extractions.find((ext) => matchesQuestionTarget(ext, activeQuestion)) ||
             extractionResult.extractions.find(
               (ext) => ext.concept === targetConcept && ext.attribute === targetAttribute
             ) ||
@@ -236,18 +306,19 @@ export const clinicalController = {
           uiMapping = mapExtractionToUiOption(primaryExtraction, activeQuestion);
 
           if (activeQuestion.id === 'q.chief_complaint') {
-            // Check for specific anatomical or symptom matches in extractions
-            const hasKnee = extractionResult.extractions.some(
+            const hasShoulder = extractionResult.extractions.some(
               (ext) =>
-                ext.concept === 'symptom.pain.knee' ||
-                (ext.concept === 'symptom.pain' && ext.attribute === 'location' && ext.value === 'knee') ||
-                ext.value === 'knee'
+                ext.concept === 'symptom.pain.shoulder' ||
+                (ext.concept === 'symptom.pain' && ext.attribute === 'location' && ext.value === 'shoulder') ||
+                ext.value === 'shoulder' ||
+                ext.value === 'shoulder_pain'
             );
             const hasChest = extractionResult.extractions.some(
               (ext) =>
                 ext.concept === 'symptom.pain.chest' ||
                 (ext.concept === 'symptom.pain' && ext.attribute === 'location' && ext.value === 'chest') ||
-                ext.value === 'chest'
+                ext.value === 'chest' ||
+                ext.value === 'chest_pain'
             );
             const hasAbdomen = extractionResult.extractions.some(
               (ext) =>
@@ -265,7 +336,45 @@ export const clinicalController = {
             );
             const hasHeadache = extractionResult.extractions.some((ext) => ext.concept === 'symptom.headache');
 
-            if (hasKnee || hasChest || primaryExtraction.concept === 'symptom.pain') {
+            if (hasShoulder) {
+              finalNormalized = 'shoulder_pain';
+              engine.sessionState.primaryConcern = 'shoulder_pain';
+              engine.sessionState.collectedFacts['symptom.pain.shoulder.location'] = {
+                concept: 'symptom.pain.shoulder',
+                attribute: 'location',
+                value: 'shoulder',
+                status: 'PRESENT',
+                source: 'PATIENT_VOICE',
+                recordedAt: new Date().toISOString(),
+              };
+              engine.sessionState.collectedFacts['symptom.pain.location'] = {
+                concept: 'symptom.pain',
+                attribute: 'location',
+                value: 'shoulder',
+                status: 'PRESENT',
+                source: 'PATIENT_VOICE',
+                recordedAt: new Date().toISOString(),
+              };
+            } else if (hasChest) {
+              finalNormalized = 'chest_pain';
+              engine.sessionState.primaryConcern = 'chest_pain';
+              engine.sessionState.collectedFacts['symptom.pain.chest.location'] = {
+                concept: 'symptom.pain.chest',
+                attribute: 'location',
+                value: 'chest',
+                status: 'PRESENT',
+                source: 'PATIENT_VOICE',
+                recordedAt: new Date().toISOString(),
+              };
+              engine.sessionState.collectedFacts['symptom.pain.location'] = {
+                concept: 'symptom.pain',
+                attribute: 'location',
+                value: 'chest',
+                status: 'PRESENT',
+                source: 'PATIENT_VOICE',
+                recordedAt: new Date().toISOString(),
+              };
+            } else if (primaryExtraction.concept === 'symptom.pain') {
               finalNormalized = 'pain';
               engine.sessionState.primaryConcern = 'pain';
             } else if (hasAbdomen) {
@@ -346,6 +455,18 @@ export const clinicalController = {
       const dynamicNext = await engine.getNextQuestionDynamic(language, rawResponse || String(finalNormalized || ''));
       recordResult.next = dynamicNext;
 
+      if (dynamicNext?.question) {
+        await prisma.clinicalSession.update({
+          where: { id },
+          data: { currentQuestionId: dynamicNext.question.id },
+        }).catch(() => {});
+      } else if (dynamicNext?.status === 'complete') {
+        await prisma.clinicalSession.update({
+          where: { id },
+          data: { status: 'COMPLETED' },
+        }).catch(() => {});
+      }
+
       // Persist response to database (Section 21, 23)
       await prisma.questionResponse.create({
         data: {
@@ -364,7 +485,9 @@ export const clinicalController = {
 
       // Persist facts to prisma.clinicalFact table (Section 21, 23)
       const targetFactKey = `${activeQuestion.targetConcept || activeQuestion.concept}.${activeQuestion.targetAttribute || activeQuestion.attribute}`;
-      const primaryFact = engine.sessionState.collectedFacts[targetFactKey] || engine.sessionState.collectedFacts[`${activeQuestion.concept}.${activeQuestion.attribute}`];
+      const primaryFact = engine.sessionState.collectedFacts[targetFactKey] ||
+        engine.sessionState.collectedFacts[`${activeQuestion.concept}.${activeQuestion.attribute}`] ||
+        (primaryExtraction ? engine.sessionState.collectedFacts[`${primaryExtraction.concept}.${primaryExtraction.attribute}`] : null);
       if (primaryFact) {
         await prisma.clinicalFact.create({
           data: {
@@ -442,9 +565,254 @@ export const clinicalController = {
       const engine = getOrCreateEngine(dbSession);
       const summary = engine.sessionState.getClinicalSummary();
 
+      const docs = await prisma.medicalDocument.findMany({
+        where: { sessionId: id },
+        orderBy: { createdAt: 'asc' },
+      });
+      summary.documents = docs;
+
       res.status(200).json({
         success: true,
         data: summary,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/clinical/sessions/:id/examination-history (Phase 7 Section 10, 11, 12)
+   * Returns complete history of every question asked and patient's answer.
+   */
+  async getExaminationHistory(req, res, next) {
+    try {
+      const { id } = req.params;
+      const lang = req.query.lang || 'mr';
+
+      const dbSession = await prisma.clinicalSession.findUnique({
+        where: { id },
+        include: { responses: true, facts: true },
+      });
+
+      if (!dbSession) {
+        throw new AppError(404, 'Clinical session not found', 'SESSION_NOT_FOUND');
+      }
+
+      const engine = getOrCreateEngine(dbSession);
+      const history = engine.sessionState.getExaminationHistory(lang);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          sessionId: id,
+          history,
+          examinationHistory: history,
+          count: history.length,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * PATCH /api/clinical/sessions/:id/responses/:questionId (Phase 7 Section 18)
+   * Patient correction of a previous answer. Updates state, invalidates stale facts,
+   * recomputes clinical summary, and updates database records.
+   */
+  async updateResponse(req, res, next) {
+    try {
+      const { id, questionId } = req.params;
+      const { newResponse, normalizedValue, inputMethod = 'TOUCH', language = 'mr' } = req.body;
+
+      const dbSession = await prisma.clinicalSession.findUnique({ where: { id } });
+      if (!dbSession) {
+        throw new AppError(404, 'Clinical session not found', 'SESSION_NOT_FOUND');
+      }
+
+      const engine = getOrCreateEngine(dbSession);
+      const updatedRecord = engine.sessionState.updateResponse({
+        questionId,
+        newResponse,
+        normalizedValue,
+        inputMethod,
+        language,
+      });
+
+      // Update in PostgreSQL / Prisma
+      const existingDbResponse = await prisma.questionResponse.findFirst({
+        where: { sessionId: id, questionId },
+      });
+
+      if (existingDbResponse) {
+        await prisma.questionResponse.update({
+          where: { id: existingDbResponse.id },
+          data: {
+            rawResponse: newResponse ? JSON.parse(JSON.stringify(newResponse)) : null,
+            normalizedValue: updatedRecord.normalizedValue !== undefined ? JSON.parse(JSON.stringify(updatedRecord.normalizedValue)) : null,
+            inputMethod: inputMethod.toUpperCase(),
+            language,
+            status: updatedRecord.status,
+          },
+        });
+      } else {
+        await prisma.questionResponse.create({
+          data: {
+            sessionId: id,
+            questionId,
+            rawResponse: newResponse ? JSON.parse(JSON.stringify(newResponse)) : null,
+            normalizedValue: updatedRecord.normalizedValue !== undefined ? JSON.parse(JSON.stringify(updatedRecord.normalizedValue)) : null,
+            inputMethod: inputMethod.toUpperCase(),
+            language,
+            status: updatedRecord.status,
+          },
+        });
+      }
+
+      const updatedSummary = engine.sessionState.getClinicalSummary();
+
+      res.status(200).json({
+        success: true,
+        data: {
+          updatedResponse: updatedRecord,
+          clinicalSummary: updatedSummary,
+          examinationHistory: engine.sessionState.getExaminationHistory(language),
+        },
+        message: 'Examination answer corrected and clinical state recomputed successfully.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/clinical/sessions/:id/submit (Phase 7 Section 19)
+   * Dispatches complete structured doctor payload.
+   */
+  async submitToDoctor(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const dbSession = await prisma.clinicalSession.findUnique({
+        where: { id },
+        include: {
+          patient: true,
+          responses: true,
+          facts: true,
+        },
+      });
+
+      if (!dbSession) {
+        throw new AppError(404, 'Clinical session not found', 'SESSION_NOT_FOUND');
+      }
+
+      const engine = getOrCreateEngine(dbSession);
+      const summary = engine.sessionState.getClinicalSummary();
+      const examinationHistory = engine.sessionState.getExaminationHistory(dbSession.language);
+      const docs = await prisma.medicalDocument.findMany({
+        where: { sessionId: id },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // Construct comprehensive doctor-facing payload
+      const doctorPayload = {
+        sessionId: dbSession.id,
+        sessionMetadata: {
+          id: dbSession.id,
+          status: 'COMPLETED',
+          language: dbSession.language,
+          opdMode: dbSession.opdMode,
+          createdAt: dbSession.createdAt,
+          submittedAt: new Date().toISOString(),
+        },
+        patient: {
+          id: dbSession.patient?.id || null,
+          identifier: dbSession.patient?.patientIdentifier || null,
+          name: dbSession.patient ? `${dbSession.patient.firstName} ${dbSession.patient.lastName}` : 'Walk-in Patient',
+          language: dbSession.language,
+          opdMode: dbSession.opdMode,
+        },
+        primaryComplaint: summary.primaryConcern,
+        clinicalSummary: {
+          primaryConcern: summary.primaryConcern,
+          duration: summary.duration,
+          severity: summary.severity,
+          location: summary.location,
+          symptoms: summary.symptoms,
+          factsCount: summary.factsCount,
+        },
+        allDynamicQuestions: engine.sessionState.questionsAlreadyAsked,
+        allPatientAnswers: engine.sessionState.responses,
+        examinationHistory,
+        clinicalFacts: Object.values(engine.sessionState.collectedFacts),
+        documents: docs.map((d) => ({
+          id: d.id,
+          type: d.documentType,
+          fileName: d.fileName,
+          ocrText: d.ocrText,
+          extractedData: d.extractedData,
+          confidence: d.confidence,
+          uploadedAt: d.createdAt,
+        })),
+        medicalDocuments: docs.map((d) => ({
+          id: d.id,
+          type: d.documentType,
+          fileName: d.fileName,
+          ocrText: d.ocrText,
+          extractedInformation: d.extractedData,
+          confidence: d.confidence,
+          uploadedAt: d.createdAt,
+        })),
+        auditTrail: {
+          submissionTimestamp: new Date().toISOString(),
+          correctionsCount: engine.sessionState.responses.filter((r) => r.correctionHistory?.length).length,
+          factsCount: Object.keys(engine.sessionState.collectedFacts).length,
+        },
+        metadata: {
+          createdAt: dbSession.createdAt,
+          submittedAt: new Date().toISOString(),
+          status: 'SUBMITTED_TO_PHYSICIAN',
+          intakeMethod: 'KIOSK_AUTONOMOUS',
+        },
+      };
+
+      // Mark session COMPLETED in database
+      await prisma.clinicalSession.update({
+        where: { id },
+        data: { status: 'COMPLETED' },
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          ...doctorPayload,
+          doctorPayload,
+        },
+        message: 'Complete clinical intake payload dispatched to doctor dashboard successfully.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/clinical/sessions/:id/reset (Phase 7 Section 5)
+   * Enforces backend session isolation: purges in-memory active cache and marks session ABORTED.
+   */
+  async resetSession(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      activeSessions.delete(id);
+
+      await prisma.clinicalSession.update({
+        where: { id },
+        data: { status: 'ABORTED' },
+      }).catch(() => {});
+
+      res.status(200).json({
+        success: true,
+        message: `Clinical session ${id} purged from memory and marked aborted.`,
       });
     } catch (error) {
       next(error);
@@ -504,4 +872,5 @@ export const clinicalController = {
     }
   },
 };
+
 

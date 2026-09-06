@@ -1,5 +1,5 @@
 export { aiConfig } from './aiConfig.js';
-export { clinicalExtractionService, mapExtractionToUiOption } from './clinicalExtractionService.js';
+export { clinicalExtractionService, mapExtractionToUiOption, matchesQuestionTarget } from './clinicalExtractionService.js';
 export { dynamicQuestionService } from './dynamicQuestionService.js';
 export { qwenProvider } from './providers/qwenProvider.js';
 export { mockProvider } from './providers/mockProvider.js';

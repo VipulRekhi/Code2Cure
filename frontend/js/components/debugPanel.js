@@ -12,6 +12,12 @@ export function renderDebugPanel() {
   const factsCount = appState.backendSessionId ? 'Active' : 'Offline/Fallback';
   const initialComplaintText = appState.complaint.initialComplaintTranscript || appState.complaint.textPatientSpoken;
 
+  const isQuestionDesynced = Boolean(
+    appState.activeQuestionId &&
+    appState.latestAnswerQuestionId &&
+    appState.activeQuestionId !== appState.latestAnswerQuestionId
+  );
+
   return `
     <div id="kiosk-debug-panel" style="
       position: fixed;
@@ -33,9 +39,25 @@ export function renderDebugPanel() {
         <span style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #94a3b8;">${factsCount}</span>
       </div>
 
+      ${isQuestionDesynced ? `
+        <div style="background: #dc2626; color: white; padding: 5px 8px; border-radius: 4px; font-weight: bold; margin-bottom: 8px; text-align: center; letter-spacing: 0.5px;">
+          ⚠️ QUESTION DESYNC DETECTED!
+        </div>
+      ` : ''}
+
       <div style="margin-bottom: 4px;">
         <span style="color: #94a3b8;">Session ID:</span>
         <span style="color: #f1f5f9;">${appState.backendSessionId || 'none'}</span>
+      </div>
+
+      <div style="margin-bottom: 4px;">
+        <span style="color: #94a3b8;">Active Q ID:</span>
+        <span style="color: #38bdf8; font-weight: bold;">${appState.activeQuestionId || 'none'}</span>
+      </div>
+
+      <div style="margin-bottom: 4px;">
+        <span style="color: #94a3b8;">Answered Q ID:</span>
+        <span style="color: #f472b6; font-weight: bold;">${appState.latestAnswerQuestionId || 'none'}</span>
       </div>
 
       <div style="margin-bottom: 4px;">

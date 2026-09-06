@@ -125,6 +125,7 @@ model ClinicalSession {
   patient           Patient?           @relation(fields: [patientId], references: [id], onDelete: SetNull)
   responses         QuestionResponse[]
   facts             ClinicalFact[]
+  documents         MedicalDocument[]
 
   @@index([patientId])
   @@map("clinical_sessions")
@@ -169,3 +170,24 @@ model ClinicalFact {
   @@index([concept])
   @@map("clinical_facts")
 }
+
+model MedicalDocument {
+  id               String          @id @default(uuid())
+  sessionId        String
+  documentType     String          @default("OTHER") // "PRESCRIPTION" | "LAB_REPORT" | "DISCHARGE" | "OTHER"
+  fileName         String
+  fileSizeBytes    Int?
+  mimeType         String?
+  ocrText          String?         @db.Text
+  extractedData    Json?
+  processingStatus String          @default("PROCESSED") // "PENDING" | "PROCESSED" | "FAILED"
+  confidence       Float?          @default(0.95)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  session          ClinicalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("medical_documents")
+}
+

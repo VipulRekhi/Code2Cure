@@ -85,5 +85,6 @@ export function parseAndValidateModelOutput(rawText) {
   return {
     success: true,
     extractions: validExtractions,
+    answersCurrentQuestion: validationResult.data.answersCurrentQuestion ?? true,
   };
 }
