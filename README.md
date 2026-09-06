@@ -1,121 +1,132 @@
-# MediKiosk — Smart Multilingual Patient Case-Taking & Triage Platform
+# MediKiosk — Smart Multilingual Patient Case-Taking & Clinical Triage Platform
 
 [![SIH 2026](https://img.shields.io/badge/SIH-2026-orange.svg)](https://www.sih.gov.in/)
 [![Ministry of Ayush](https://img.shields.io/badge/Ministry-Ayush-green.svg)](https://ayush.gov.in/)
 [![All India Institute of Ayurveda](https://img.shields.io/badge/Department-AIIA-blue.svg)](https://aiia.gov.in/)
 [![Problem Statement](https://img.shields.io/badge/Problem%20Statement-SIH26047-red.svg)](https://www.sih.gov.in/)
-[![Current Implementation](https://img.shields.io/badge/Current%20Status-Phase%204%20Completed-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg)](LICENSE)
+[![OCR Engine](https://img.shields.io/badge/OCR-PaddleOCR%20Devanagari%20PP--OCRv5-blueviolet.svg)]()
+[![Voice Pipeline](https://img.shields.io/badge/Voice-Multilingual%20Neural%20TTS%20%2B%20ASR-teal.svg)]()
 
 > **SIH 2026 Problem Statement ID:** SIH26047  
 > **Title:** Patient Case-Taking Software  
 > **Organization:** Ministry of Ayush | **Department:** All India Institute of Ayurveda (AIIA)  
 > **Theme:** MedTech / BioTech / HealthTech  
-> **Current implementation:** **Phase 4**
 
 ---
 
 ## 1. Overview
 
-**MediKiosk** is an accessible, patient-facing, multimodal clinical intake kiosk and digital case-taking platform engineered for high-volume outpatient departments (OPDs) in Indian tertiary hospitals and Ayurvedic institutes.
+**MediKiosk** is a sovereign, patient-facing, multimodal clinical intake kiosk and digital case-taking platform engineered for high-volume outpatient departments (OPDs) in Indian tertiary hospitals and Ayurvedic institutes.
 
-MediKiosk empowers patients—regardless of literacy level or technical background—to independently complete a comprehensive clinical history intake, digitize physical medical documents, and undergo automated red-flag triage screening before entering the doctor's consultation room.
+MediKiosk empowers patients—regardless of literacy level or technical background—to independently complete a comprehensive clinical history intake, digitize physical medical documents via on-device OCR, and undergo automated red-flag triage screening before entering the doctor's consultation room.
 
 ```
-IDENTIFY → LANGUAGE → CONSENT → HISTORY → DOCUMENTS → REVIEW → SUMMARY → TRIAGE/ROUTE → DOCTOR REVIEW → CONFIRM
+IDENTIFY → LANGUAGE → CONSENT → CLINICAL HISTORY → DOCUMENTS & OCR → REVIEW → SUMMARY → TRIAGE/ROUTE → DOCTOR DASHBOARD
 ```
 
 > [!IMPORTANT]
-> **Safety Baseline:** MediKiosk is **strictly an assistive clinical intake, structuring, and triage-assistive tool**. It is **NOT** an autonomous diagnostic system. All AI-extracted insights, medical document summaries, and clinical notes are treated as provisional drafts subject to mandatory physician verification and sign-off.
+> **Safety & Zero-Hallucination Baseline:** MediKiosk is **strictly an assistive clinical intake, structuring, and triage-assistive tool**. It is **NOT** an autonomous diagnostic system. All AI-extracted clinical concepts, OCR extractions, and medical document summaries are treated as provisional drafts subject to mandatory physician verification and sign-off. When an OCR document has unreadable fields, the system strictly outputs `"Not detected"` rather than inferring or hallucinating medication dosages.
 
 ---
 
-## 2. Architecture
+## 2. System Architecture
 
-MediKiosk is structured as a **single monolithic application with modular code organization**, built entirely in standard **JavaScript** across both frontend and backend.
+MediKiosk is designed as a high-performance modular system combining an ultra-responsive kiosk UI, a deterministic clinical backend, and a dedicated sovereign Python runtime for voice and OCR:
 
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Patient Kiosk Frontend (Port 5173)                       │
+│      Vanilla HTML5 + Modern CSS3 + Native ES Modules (Zero React/TS)        │
+│          Touch-first UI (>= 64px tap targets), Audio Waveforms, OCR         │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ REST API (JSON / Multipart)
+┌──────────────────────────────────────▼──────────────────────────────────────┐
+│                     Node.js Express Backend (Port 5000)                     │
+│    • Clinical Session State Machine        • Zero-Hallucination Extractor   │
+│    • Cross-Session Data Isolation          • 25 MB Payload Support          │
+│    • Prisma ORM Data Layer                 • JWT Auth & Triage Engine       │
+└──────────────────┬───────────────────────────────────────────┬──────────────┘
+                   │ Prisma Client                             │ HTTP / Subprocess
+┌──────────────────▼──────────────────┐     ┌──────────────────▼──────────────┐
+│       Supabase / PostgreSQL         │     │ Sovereign Voice & OCR Runtime   │
+│ • ClinicalSession & MedicalDocument │     │         (Port 8001)             │
+│ • Patient, Doctor & Audit Logs      │     │ • Edge-TTS / Meta MMS VITS      │
+│ • Strict Session-Scoped Records     │     │ • Vernacular ASR (mr, hi, en)   │
+└─────────────────────────────────────┘     │ • PaddleOCR Devanagari Engine   │
+                                            │ • PDF multi-page rendering      │
+                                            └─────────────────────────────────┘
 ```
-Patient Kiosk Frontend (Vanilla HTML5 + CSS3 + JavaScript ES Modules)
-               ↓  REST API (JSON Envelope)
-Express.js Backend (Node.js + Pure JavaScript ES Modules + Modular Monolith)
-               ↓  Prisma Client
-Supabase PostgreSQL (Cloud-hosted / deployment-ready via DATABASE_URL & DIRECT_URL)
-```
-
-The application runs directly on standard development machines using Node.js and npm without requiring Docker.
 
 ---
 
 ## 3. Technology Stack
 
-### Frontend (Vanilla Kiosk UI/UX)
-- **Core:** HTML5, CSS3, Vanilla JavaScript (ES Modules) — *Zero React / Zero TypeScript / Zero Frontend Frameworks*
+### Frontend (Vanilla Kiosk UI)
+- **Core:** HTML5, CSS3, Vanilla JavaScript (ES Modules) — *Zero React / Zero TypeScript overhead for instant kiosk cold boots*
 - **Typography:** Google Fonts (Noto Sans & Noto Sans Devanagari)
 - **Languages:** Marathi (मराठी), Hindi (हिन्दी), English
-- **Kiosk Target:** 16:9 Landscape displays (1920×1080, 1366×768)
+- **Kiosk Target:** 16:9 Landscape touch displays (1920×1080, 1366×768)
 - **Touch Metrics:** Minimum touch targets $\ge 48\text{px}$, primary actions 64–100px+
-- **Testing:** Vitest + JSDOM + Browser Subagent E2E testing
+- **Voice UX:** Native MediaRecorder + Web Audio API visualizer
 
-### Backend (Pure JavaScript + Clinical Engine)
-- **Runtime:** Node.js (v24+) — *Pure JavaScript (Zero TypeScript)*
-- **Framework:** Express.js 4
-- **ORM:** Prisma ORM 5
-- **Database:** Supabase PostgreSQL (PostgreSQL 16+) with connection pooling (`DATABASE_URL`) and direct migration access (`DIRECT_URL`)
-- **Clinical Engine:** Schema-driven deterministic Question Engine (`modules/questionEngine/`)
-- **Authentication:** JWT (`jsonwebtoken`) + Password Hashing (`bcryptjs`)
-- **Validation:** Zod
-- **Testing:** Vitest + Supertest
+### Backend (Clinical REST API)
+- **Runtime:** Node.js (v18+) ES Modules
+- **Framework:** Express.js 4 (configured with 25 MB body parser for high-res medical scans)
+- **Database & ORM:** PostgreSQL / Supabase with Prisma ORM 5
+- **Clinical Engine:** Schema-driven deterministic Question Engine & Negation/Severity extraction
+- **Security:** JWT authentication, Bcrypt password hashing, session isolation middleware
+
+### Sovereign Voice & OCR Runtime (Python)
+- **Voice Synthesis (TTS):** Edge-TTS (Primary Indian neural voices: `mr-IN-AarohiNeural`, `hi-IN-SwaraNeural`, `en-IN-NeerjaNeural`) with local Meta MMS-TTS VITS fallback on GPU/CPU.
+- **Speech Recognition (ASR):** Vernacular acoustic speech recognition with FFmpeg loudness normalization.
+- **Medical Document OCR:** PaddleOCR 3.x using `devanagari_PP-OCRv5_mobile_rec` for authentic Devanagari (Marathi/Hindi) and English prescription recognition.
+- **PDF Processing:** Multi-page PDF page rendering via `pypdfium2`.
 
 ---
 
-## 4. Project Structure
+## 4. Repository Structure
 
 ```text
-medikiosk/
+SIH/
 ├── backend/                        # Express.js REST API & Database Layer
 │   ├── prisma/
-│   │   ├── migrations/             # SQL baseline migrations
-│   │   ├── schema.prisma           # Foundational schema (User, Patient, Doctor, Consent)
-│   │   └── seed.ts                 # Safe development demo seed script
+│   │   ├── schema.prisma           # Prisma schema (ClinicalSession, MedicalDocument, etc.)
+│   │   └── seed.js                 # Database seed script for development
 │   ├── src/
-│   │   ├── config/                 # Env parser (Zod) & Prisma singleton
-│   │   ├── controllers/            # Auth & Health controllers
-│   │   ├── middleware/             # Auth, role check, logger, error handler
-│   │   ├── repositories/           # Database data access layer
-│   │   ├── routes/                 # Express routers (/api/health, /api/auth, /api/patient, /api/doctor)
-│   │   ├── schemas/                # Zod request validation schemas
-│   │   ├── services/               # Auth & business logic
-│   │   ├── types/                  # TypeScript interface definitions
-│   │   ├── utils/                  # API response & error utilities
-│   │   ├── app.ts                  # Express initialization & middleware
-│   │   └── server.ts               # HTTP server listener & graceful shutdown
-│   ├── tests/                      # API and database integration tests
-│   ├── .env.example
-│   ├── package.json
-│   └── tsconfig.json
+│   │   ├── app.js                  # Express middleware & route bindings
+│   │   ├── server.js               # HTTP server entry point
+│   │   ├── controllers/            # Clinical, Document, Voice, Auth controllers
+│   │   ├── modules/
+│   │   │   ├── ai/                 # Dynamic clinical extraction & LLM prompts
+│   │   │   ├── document/           # OCR service & clinical extraction service
+│   │   │   ├── questionEngine/     # Deterministic clinical questioning engine
+│   │   │   └── voice/              # ASR & TTS routing services
+│   │   └── routes/                 # Express API routes (/api/clinical, /api/voice, etc.)
+│   ├── tests/                      # Vitest backend integration test suites
+│   ├── .env.example                # Backend environment template
+│   └── package.json
 │
-├── frontend/                       # React + Vite Web Application
-│   ├── src/
-│   │   ├── components/             # Reusable UI components (Navbar, HealthBadge)
-│   │   ├── contexts/               # AuthContext & Session management
-│   │   ├── pages/                  # Page views (Home, Login, Patient, Doctor, NotFound)
-│   │   ├── routes/                 # ProtectedRoute role-based guards
-│   │   ├── services/               # Centralized API service (api.ts)
-│   │   ├── test/                   # Component and routing tests
-│   │   ├── types/                  # Frontend TypeScript types
-│   │   ├── App.tsx                 # Router & Layout
-│   │   ├── main.tsx                # React DOM entrypoint
-│   │   └── index.css               # Tailwind CSS directives
-│   ├── .env.example
+├── frontend/                       # Vanilla Kiosk Client
+│   ├── index.html                  # Kiosk single-page container
+│   ├── css/                        # Responsive kiosk design system
+│   ├── js/
+│   │   ├── app.js                  # Kiosk bootstrap
+│   │   ├── router.js               # Vanilla hash router
+│   │   ├── state.js                # Central kiosk application state
+│   │   ├── api.js                  # Backend API client
+│   │   ├── i18n.js                 # Multilingual translation dictionary
+│   │   ├── screens/                # Screen controllers (Welcome, Language, Consent, History, DocumentReview, etc.)
+│   │   └── services/               # Voice recording & document services
 │   ├── package.json
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   └── vite.config.ts
+│   └── vite.config.js
 │
-├── docs/                           # Architecture specifications & Phase 0 ADRs
-├── .env.example                    # Monorepo environment reference
-├── .gitignore                      # Git ignore rules
-├── package.json                    # Monorepo scripts
+├── voice_runtime/                  # Sovereign Python Voice & OCR Microservice
+│   ├── server.py                   # Threaded HTTP server on port 8001 (/asr, /tts, /ocr, /health)
+│   ├── ocr_runtime.py              # PaddleOCR layout analysis & pypdfium2 PDF renderer
+│   └── requirements.txt            # Python dependencies
+│
+├── package.json                    # Workspace root scripts
 └── README.md                       # Documentation
 ```
 
@@ -123,178 +134,246 @@ medikiosk/
 
 ## 5. Prerequisites
 
-- **Node.js:** `v20.x` or `v24.x` (Tested on `v24.18.0`)
-- **npm:** `v10.x` or `v11.x` (Tested on `11.16.0`)
-- **PostgreSQL:** Local PostgreSQL server running on port `5432`
+Before setting up MediKiosk on your machine, ensure you have the following installed:
+
+1. **Node.js**: `v18.x` or later (`node -v`)
+2. **npm**: `v9.x` or later (`npm -v`)
+3. **Python**: `3.10` to `3.12` (`python --version`)
+4. **FFmpeg**: Required for audio transcoding and loudness normalization.
+   - **Windows:** `winget install Gyan.FFmpeg` or download from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) and add to `PATH`.
+   - **Linux / macOS:** `sudo apt install ffmpeg` or `brew install ffmpeg`
+5. **Git**: (`git --version`)
+6. **PostgreSQL / Supabase**: A local PostgreSQL database or free cloud database from [Supabase](https://supabase.com).
 
 ---
 
-## 6. PostgreSQL Setup
+## 6. Step-by-Step Installation & Local Setup
 
-1. Verify PostgreSQL service is running:
-   ```powershell
-   # Windows PowerShell
-   Get-Service *postgres*
-   ```
-2. Create the MediKiosk database and dedicated development user:
-   ```sql
-   CREATE USER medikiosk_user WITH PASSWORD 'medikiosk_secure_password' CREATEDB;
-   CREATE DATABASE medikiosk_db OWNER medikiosk_user;
-   GRANT ALL ON SCHEMA public TO medikiosk_user;
-   ALTER SCHEMA public OWNER TO medikiosk_user;
-   ```
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/VipulRekhi/Code2Cure.git
+cd Code2Cure
+```
 
 ---
 
-## 7. Environment Variables
+### Step 2: Install Node.js Dependencies
 
-### Backend Configuration (`backend/.env`)
-Copy `backend/.env.example` to `backend/.env`:
+Install dependencies for root, backend, and frontend:
+
+```bash
+# Install root and workspace dependencies
+npm install
+
+# Or install manually per directory:
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
+```
+
+---
+
+### Step 3: Configure Environment Variables
+
+Create `.env` in the `backend/` directory:
+
 ```bash
 cp backend/.env.example backend/.env
 ```
 
+Open `backend/.env` and update your database credentials:
+
 ```env
 NODE_ENV=development
 PORT=5000
-DATABASE_URL=postgresql://medikiosk_user:medikiosk_secure_password@localhost:5432/medikiosk_db?schema=public
-JWT_SECRET=development_super_secret_jwt_key_min_32_chars_long_medikiosk
-JWT_EXPIRES_IN=7d
 FRONTEND_URL=http://localhost:5173
-```
 
-### Frontend Configuration (`frontend/.env`)
-Copy `frontend/.env.example` to `frontend/.env`:
-```bash
-cp frontend/.env.example frontend/.env
-```
+# PostgreSQL / Supabase Database Connection
+# If using Supabase, paste your transaction pooler URL (DATABASE_URL) and direct URL (DIRECT_URL):
+DATABASE_URL="postgresql://postgres.[your-project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.[your-project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
 
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+JWT_SECRET="medikiosk_super_secure_development_secret_key_12345"
+JWT_EXPIRES_IN=7d
 
----
+# Voice Pipeline (Port 8001)
+VOICE_RUNTIME_HOST=127.0.0.1
+VOICE_RUNTIME_PORT=8001
+ASR_ENDPOINT=http://127.0.0.1:8001/asr
+TTS_ENDPOINT=http://127.0.0.1:8001/tts
 
-## 8. Installation
-
-Install dependencies across the monorepo:
-```bash
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
+# AI Extraction Mode
+AI_PROVIDER=mock
+AI_MODE=mock
 ```
 
 ---
 
-## 9. Database Migration & Seed
+### Step 4: Initialize the Database
 
-Generate the Prisma client, deploy migrations, and seed safe demo users:
+Push the Prisma schema to your database and seed initial demo data:
 
 ```bash
-# Generate Prisma client
 cd backend
-npm run prisma:generate
 
-# Apply migrations
-npx prisma migrate resolve --applied 20260903000000_init
+# Generate Prisma Client
+npx prisma generate
 
-# Seed demo users
+# Synchronize database schema
+npx prisma db push
+
+# Seed demo doctors and initial clinical entities
 npm run db:seed
-```
 
-### Safe Demo Credentials (Development Only)
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| **Patient** | `patient@medikiosk.local` | `Password123!` |
-| **Doctor** | `doctor@medikiosk.local` | `Password123!` |
-| **Admin** | `admin@medikiosk.local` | `Password123!` |
+cd ..
+```
 
 ---
 
-## 10. Running Backend
+### Step 5: Setup Python Voice & OCR Runtime
 
-Start the Express development server with hot-reloading (`tsx`):
+Open a terminal to install Python dependencies:
+
 ```bash
+# Optional but recommended: create a virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# On Linux / macOS:
+source .venv/bin/activate
+
+# Install Python requirements
+pip install -r voice_runtime/requirements.txt
+```
+
+---
+
+## 7. Running the Application
+
+To run MediKiosk locally, open three terminal windows:
+
+### Terminal 1: Start Sovereign Voice & OCR Runtime (Port 8001)
+
+```bash
+python voice_runtime/server.py
+```
+*You will see:*
+```text
+[Voice Runtime] CUDA GPU detected / Running on CPU
+[Voice Runtime] Pre-warming PaddleOCR Devanagari engine...
+[Voice Runtime] PaddleOCR engine pre-warmed and ready.
+[Voice Runtime] Sovereign Voice Service active at http://127.0.0.1:8001
+[Voice Runtime] Neural TTS & Vernacular ASR Ready on port 8001
+```
+
+---
+
+### Terminal 2: Start Express.js Backend (Port 5000)
+
+```bash
+# From repository root:
+npm run dev:backend
+
+# Or from backend/ directory:
 cd backend
 npm run dev
 ```
-The server will start on `http://localhost:5000`.  
-Verify health: `http://localhost:5000/api/health`
+*Backend runs at `http://localhost:5000`.*
 
 ---
 
-## 11. Running Frontend
+### Terminal 3: Start Vanilla Kiosk Frontend (Port 5173)
 
-Start the Vite development server:
 ```bash
+# From repository root:
+npm run dev:frontend
+
+# Or from frontend/ directory:
 cd frontend
 npm run dev
 ```
-The frontend will start on `http://localhost:5173`.  
-Open in your browser to interact with the Home, Login, Patient, and Doctor interfaces.
-
-Or run both concurrently from the workspace root:
-```bash
-npm run dev:backend
-npm run dev:frontend
-```
+*Frontend opens at `http://localhost:5173`.*
 
 ---
 
-## 12. Testing
+## 8. Verifying the Full OCR & Voice Pipeline
 
-Run automated tests across both layers:
+Once all three services are running, test the complete workflow:
+
+1. Open `http://localhost:5173` in Chrome / Edge.
+2. Select **Marathi (मराठी)**, **Hindi (हिन्दी)**, or **English**.
+3. Choose **New Patient** or use the quick **Demo Patient (आरव शर्मा)**.
+4. Accept Consent and select a Department (e.g. *General Medicine*).
+5. Select a symptom or use the **Microphone** to speak in Marathi/Hindi.
+6. When prompted for past medical records, click **होय, मागील अहवाल / कागदपत्रे आहेत (Yes, I have documents)**.
+7. Upload any prescription image (`.jpg`, `.png`) or medical report (`.pdf`) up to **15 MB**.
+8. The kiosk will display `🔍 कागद तपासत आहे... (Analyzing Document)`.
+9. The extracted text will be displayed with `✓ Scanned by PaddleOCR`, exact Devanagari preservation, and extracted medications.
+
+---
+
+## 9. Automated Regression Testing
+
+Run the full automated test suites to verify that OCR, voice, and database layers work cleanly:
 
 ```bash
-# Run backend tests (18 tests: health, auth, JWT, RBAC, DB relations)
+# Run all backend integration tests
 npm run test:backend
 
-# Run frontend tests (3 tests: app load, login form, protected routing)
-npm run test:frontend
+# Run dedicated Real-World Medical Document OCR Suite:
+cd backend
+npx vitest run tests/realMedicalDocumentOcr.test.js
 
-# Run all tests
-npm test
+# Run Devanagari Unicode preservation tests:
+npx vitest run tests/paddleOcrDevanagari.test.js
+
+# Run Voice Input End-to-End Suite:
+npx vitest run tests/voiceInputEndToEnd.test.js
 ```
 
----
-
-## 13. Current Phase
- 
-**Current implementation: Phase 4**
-
-### Phase 4 Deliverables Completed
-- [x] Open-source **Qwen 2.5 7B Instruct** clinical slot extraction module (`backend/src/modules/ai/`)
-- [x] Clean AI provider abstraction decoupled from runtime specifics (`qwenProvider.js` for local vLLM/Ollama and `mockProvider.js` for testing)
-- [x] Centralized configuration (`aiConfig.js`) with support for `AI_MODE=qwen` and `AI_MODE=mock`
-- [x] Strict Zod output schema validation (`clinicalExtractionSchema.js`) and prompt injection defense
-- [x] Anti-hallucination safeguards: unstated symptoms are never fabricated
-- [x] Strict safety boundaries: zero diagnosis, zero prescription, zero triage classification
-- [x] Multilingual extraction parity across Marathi, Hindi, and English into language-neutral concept IDs
-- [x] Multi-slot extraction: extracts multiple clinical facts from a single complex utterance
-- [x] Explicit negative (`ABSENT`) and unknown (`UNKNOWN`) semantics preserved
-- [x] Direct integration into `POST /api/clinical/sessions/:id/responses` and dedicated `POST /api/clinical/sessions/:id/extract`
-- [x] Preservation of raw transcripts and source provenance (`PATIENT_VOICE`)
-- [x] Seamless deterministic QuestionEngine decision-making (`Qwen extracts. QuestionEngine decides.`)
-- [x] 100% passing automated test suite (36 backend tests, 8 frontend tests = 44 tests total)
-- [x] End-to-end live browser verification with Marathi voice recognition, slot extraction, and token generation
+### Verified Test Matrix
+| Test Suite | Purpose | Status |
+|---|---|---|
+| `tests/realMedicalDocumentOcr.test.js` | Real JPG, PNG, multi-page PDF upload, Express API, zero hallucination | **PASS (7/7)** |
+| `tests/paddleOcrDevanagari.test.js` | PaddleOCR inference, Devanagari Unicode (`\u0900`–`\u097F`) round-trip | **PASS (3/3)** |
+| `tests/medicalDocumentOcr.test.js` | Layout parsing, dosage detection, cross-session isolation | **PASS (9/9)** |
+| `tests/voiceInputEndToEnd.test.js` | Edge-TTS synthesis & acoustic vernacular ASR transcription | **PASS (4/4)** |
 
 ---
 
-## 14. Future Phases
+## 10. Document OCR & Zero-Hallucination Rules
 
-The upcoming development phases will activate speech sidecars and document intelligence on top of this structured foundation:
+1. **Accepted MIME Types:** `image/jpeg`, `image/png`, `image/webp`, `application/pdf`.
+2. **File Size Limit:** Up to **15 MB** per document. Backend Express parser supports up to **25 MB** payloads to safely accommodate base64 transport overhead.
+3. **PDF Page Rendering:** Multi-page PDFs are automatically rasterized page-by-page using `pypdfium2` before feeding to PaddleOCR.
+4. **Zero-Hallucination Extraction:**
+   - If a prescription mentions a medication without a clear dosage, `dose` is recorded strictly as `"Not detected"`.
+   - The engine never fabricates `"1 tablet twice daily"` or `"500mg"` unless explicitly written on the document.
+   - Raw OCR text is permanently preserved alongside structured extractions for physician audit.
 
-- **Phase 5:** IndicConformer ASR & IndicF5 TTS Multilingual Speech Sidecars
-- **Phase 6:** PaddleOCR & Medical Document Entity Extraction
-- **Phase 7:** Deterministic Red-Flag & Emergency Triage Engine
-- **Phase 8:** Clinical Summary Generation & Timeline Synthesizer
-- **Phase 9:** AYUSH & Ayurvedic Dashavidha Pariksha Module
-- **Phase 10:** Doctor Review, Verification & Sign-off Dashboard
-- **Phase 11:** FHIR R4 & ABDM Integration Adapter Layer
-- **Phase 12:** Security, Privacy & DPDP/ABDM Consent Hardening
-- **Phase 13:** Comprehensive Testing & Golden Dataset Benchmarking
-- **Phase 14:** SIH Final Demonstration, Packaging & Optimization
+---
+
+## 11. Troubleshooting & Common Issues
+
+### 1. Python Server (Port 8001) Shows "Connection Refused"
+- **Solution:** Ensure `python voice_runtime/server.py` is running in Terminal 1. Verify health check at `http://127.0.0.1:8001/health`.
+
+### 2. PaddleOCR Cold-Start Delay on First Run
+- On the very first run, PaddleOCR downloads its models to `~/.paddlex/official_models/`. Subsequent runs use pre-warmed memory caching and complete recognition within seconds.
+
+### 3. Audio / Microphone ASR Failure
+- Ensure FFmpeg is accessible in your system `PATH` (`ffmpeg -version`).
+- When testing in the browser, allow microphone permissions for `http://localhost:5173`.
+
+### 4. Database Connection Errors
+- Verify that `DATABASE_URL` in `backend/.env` has the correct password and pooler parameters (`?pgbouncer=true` for Supabase pooler). Run `npx prisma db push` to verify connectivity.
+
+---
+
+## 12. Contributing & License
+
+Developed for the **Smart India Hackathon (SIH 2026)** under the Ministry of Ayush & All India Institute of Ayurveda (AIIA).
+
+Licensed under the [Apache License 2.0](LICENSE).

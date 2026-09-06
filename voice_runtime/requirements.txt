@@ -1,0 +1,20 @@
+# MediKiosk Sovereign Voice & Document OCR Runtime Dependencies
+# Python 3.10 - 3.12 recommended
+
+# Multilingual Neural Speech Synthesis (Edge-TTS & Meta MMS-TTS)
+edge-tts>=7.0.0
+soundfile>=0.12.0
+torch>=2.0.0
+torchaudio>=2.0.0
+transformers>=4.40.0
+
+# Vernacular Acoustic Speech Recognition (ASR)
+SpeechRecognition>=3.10.0
+
+# Medical Document OCR & PDF Processing (PaddleOCR Devanagari + English)
+paddlepaddle>=3.0.0b1
+paddleocr>=3.0.0
+pypdfium2>=4.30.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
