@@ -1,6 +1,6 @@
 /**
- * Screen 7: Conversational History Screen (Phase 3 Backend Engine Integration)
- * Dynamically driven by the backend Clinical Question Engine with rule-based adaptation.
+ * Screen 7: Dynamic Conversational History Screen
+ * Driven entirely by the backend Clinical Question Engine.
  */
 
 import { t } from '../i18n.js';
@@ -8,6 +8,7 @@ import { appState, notifyStateChange, registerResetCallback } from '../state.js'
 import { router } from '../router.js';
 import { api } from '../api.js';
 import { ttsService } from '../services/ttsService.js';
+import { audioController } from '../audio.js';
 import { renderVoiceButton } from '../components/voiceButton.js';
 import { speechService } from '../services/speechService.js';
 import { MOCK_QUESTION_FLOW } from '../mock/mockQuestions.js';
@@ -25,7 +26,6 @@ export function resetConversationState() {
 }
 export const resetConversationIndex = resetConversationState;
 
-// Register synchronous reset handler
 registerResetCallback(() => {
   resetConversationState();
 });
@@ -33,15 +33,16 @@ registerResetCallback(() => {
 export function renderConversationScreen() {
   const lang = appState.language;
 
-  // 1. If we have not initialized the backend question engine yet, start loading it
+  // 1. Initializing state
   if (!appState.backendSessionId && !isInitializing && !currentBackendQuestion) {
     isInitializing = true;
     initBackendSession(lang);
     return {
       html: `
-        <div class="screen-card" style="text-align: center; align-items: center; padding: 4rem 2rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem; animation: pulse 1s infinite;">🩺</div>
-          <h2 class="kiosk-question-title">${t('processingVoice', lang)}</h2>
+        <div class="screen-card" style="text-align: center; align-items: center; padding: 4rem 2rem; max-width: 800px; margin: 0 auto;">
+          <div style="font-size: 3rem; margin-bottom: 1rem; color: var(--primary);">🩺</div>
+          <h2 class="kiosk-question-title" style="color: var(--primary);">${t('processingVoice', lang) || 'Connecting to clinical engine...'}</h2>
+          <p style="font-size: var(--font-size-sm); color: var(--muted-text); margin-top: 0.5rem;">Preparing your clinical history questions</p>
         </div>
       `,
       attachEvents: () => {},
@@ -103,6 +104,7 @@ export function renderConversationScreen() {
   const voiceWidgetHtml = renderVoiceButton({
     status: appState.voice.status,
     transcript: appState.voice.transcript,
+    interpreted: appState.latestNormalizedAnswer,
   });
 
   const progressLabel = currentProgress
@@ -110,22 +112,22 @@ export function renderConversationScreen() {
     : `${fallbackIndex + 1} / 3`;
 
   const html = `
-    <div class="screen-card">
+    <div class="screen-card" style="max-width: 1040px; margin: 0 auto;">
       <!-- Audio Prompt Listener -->
       <button id="btn-question-audio" class="audio-prompt-bar">
-        <span>🔊</span>
+        <span aria-hidden="true">🔊</span>
         <span>${t('listen', lang)}</span>
       </button>
 
-      <!-- Dev Mode Indicator (Section 40) -->
-      <div style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; background: ${currentBackendQuestion?.source === 'LLM_DYNAMIC' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)'}; color: ${currentBackendQuestion?.source === 'LLM_DYNAMIC' ? '#16a34a' : '#ca8a04'}; border: 1px solid ${currentBackendQuestion?.source === 'LLM_DYNAMIC' ? '#22c55e' : '#eab308'};">
-        <span>●</span>
-        <span>Question Source: ${currentBackendQuestion?.source || 'FALLBACK_MODE'}</span>
-      </div>
+      <!-- Active Clinical Question Header -->
+      <h1 class="kiosk-question-title" style="color: var(--primary); font-size: var(--font-size-2xl); margin-bottom: 0.35rem;">
+        ${qText}
+      </h1>
+      <p style="font-size: var(--font-size-sm); color: var(--muted-text); margin-bottom: 1.5rem;">
+        Speak your answer using the microphone or select one of the options below.
+      </p>
 
-      <h1 class="kiosk-question-title">${qText}</h1>
-
-      <!-- Voice Interaction (Multimodal) -->
+      <!-- Multimodal Voice Section -->
       ${voiceWidgetHtml}
 
       <!-- Options Grid -->
@@ -133,13 +135,20 @@ export function renderConversationScreen() {
         ${optionsHtml}
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
-        <button id="btn-conv-skip" class="btn btn-secondary" style="font-size: var(--font-size-sm); min-height: 52px;">
-          ${t('skip', lang)} ➔
+      <!-- Footer Action Row -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
+        <button id="btn-conv-back" class="btn btn-secondary" style="min-height: 50px;">
+          ← ${t('back', lang)}
         </button>
 
-        <div style="font-size: var(--font-size-sm); font-weight: 700; color: var(--muted-text);">
-          ${t('step', lang)}: ${progressLabel}
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+          <div style="font-size: var(--font-size-xs); font-weight: 700; color: var(--muted-text);">
+            ${t('step', lang)}: ${progressLabel}
+          </div>
+
+          <button id="btn-conv-skip" class="btn btn-secondary" style="font-size: var(--font-size-xs); min-height: 50px;">
+            ${t('skip', lang)} ➔
+          </button>
         </div>
       </div>
     </div>
@@ -151,20 +160,22 @@ export function renderConversationScreen() {
       // 1. Audio Speak Button
       const audioBtn = document.getElementById('btn-question-audio');
       audioBtn?.addEventListener('click', async () => {
-        if (ttsService.isSpeaking) {
-          ttsService.stop();
+        if (audioController.isSpeaking) {
+          audioController.stop();
           audioBtn.classList.remove('playing');
           return;
         }
+        if (audioController.isMuted) {
+          audioController.setMuted(false);
+        }
         audioBtn.classList.add('playing');
-        await ttsService.speak({ text: qText, language: lang });
+        await audioController.speak(qText, lang);
         audioBtn.classList.remove('playing');
       });
 
       // 2. Option Selection Click
       document.querySelectorAll('.option-tile[data-opt-idx]').forEach((tile) => {
         tile.addEventListener('click', async () => {
-          // Immediately stop any TTS playing when user interacts (Section 43)
           ttsService.stop();
 
           const idx = parseInt(tile.getAttribute('data-opt-idx'), 10);
@@ -183,7 +194,7 @@ export function renderConversationScreen() {
         });
       });
 
-      // 3. Voice Mic Click (Acoustic Echo Prevention: Stop TTS before recording, Section 45)
+      // 3. Voice Mic Click
       document.getElementById('btn-voice-mic')?.addEventListener('click', () => {
         ttsService.stop();
 
@@ -202,7 +213,7 @@ export function renderConversationScreen() {
 
             if (status === 'LISTENING') {
               if (micBtn) micBtn.classList.add('listening');
-              if (statusText) statusText.textContent = t('tapListening', lang) || 'Listening... (Tap to stop)';
+              if (statusText) statusText.textContent = t('tapListening', lang) || 'Listening... Please speak';
               return;
             }
 
@@ -211,7 +222,7 @@ export function renderConversationScreen() {
                 micBtn.classList.remove('listening');
                 micBtn.setAttribute('disabled', 'true');
               }
-              if (statusText) statusText.textContent = t('processingVoice', lang) || 'Processing speech...';
+              if (statusText) statusText.textContent = t('processingVoice', lang) || 'Understanding your speech...';
               return;
             }
 
@@ -222,24 +233,13 @@ export function renderConversationScreen() {
               return;
             }
 
-            // SERVICE_UNAVAILABLE or error state
+            // Safe error fallback
             if (micBtn) {
               micBtn.classList.remove('listening');
               micBtn.removeAttribute('disabled');
             }
             if (statusText) {
-              if (status === 'SERVICE_UNAVAILABLE') {
-                statusText.innerHTML = `
-                  <div class="voice-alert" style="color: #b91c1c; font-weight: 500;">
-                    <span>${t('voiceUnavailable', lang)}</span><br>
-                    <small style="color: #4b5563;">${t('voiceUnavailableSub', lang)}</small>
-                  </div>`;
-              } else {
-                const safeMessage = (message && !message.includes('port') && !message.includes('IndicConformer') && !message.includes('runtime'))
-                  ? message
-                  : `${t('voiceUnavailable', lang)} ${t('voiceUnavailableSub', lang)}`;
-                statusText.textContent = safeMessage;
-              }
+              statusText.textContent = t('voiceUnavailable', lang) || 'Voice service is temporarily unavailable.';
             }
             notifyStateChange('voice');
           },
@@ -250,7 +250,7 @@ export function renderConversationScreen() {
         );
       });
 
-      // 4. Voice Confirm Click (Phase 6.3)
+      // 4. Voice Confirm Click
       document.getElementById('btn-voice-confirm')?.addEventListener('click', async () => {
         ttsService.stop();
         const transcript = appState.voice.transcript;
@@ -274,6 +274,11 @@ export function renderConversationScreen() {
       document.getElementById('btn-conv-skip')?.addEventListener('click', async () => {
         await handleAnswerSubmission('unknown', 'TOUCH');
       });
+
+      // 7. Back Button
+      document.getElementById('btn-conv-back')?.addEventListener('click', () => {
+        router.navigate('chiefComplaint');
+      });
     },
   };
 }
@@ -289,7 +294,6 @@ async function initBackendSession(lang) {
     if (sessionRes?.success && sessionRes.data?.sessionId) {
       appState.backendSessionId = sessionRes.data.sessionId;
 
-      // Determine complaint slot to record (Section 15, 16, 44)
       let complaintValue = null;
       if (appState.complaint?.id === 'DIARRHEA') complaintValue = 'diarrhea';
       else if (appState.complaint?.id === 'KNEE_PAIN') complaintValue = 'knee_pain';
@@ -307,7 +311,7 @@ async function initBackendSession(lang) {
       const recordRes = await api.recordClinicalResponse(appState.backendSessionId, {
         questionId: 'q.chief_complaint',
         rawResponse: appState.complaint?.textPatientSpoken || complaintValue,
-        normalizedValue: isSpoken ? null : complaintValue, // Allow backend extraction for voice
+        normalizedValue: isSpoken ? null : complaintValue,
         inputMethod: isSpoken ? 'VOICE' : 'TOUCH',
         language: lang,
       });
@@ -321,7 +325,6 @@ async function initBackendSession(lang) {
           if (sum.location) appState.complaint.location = sum.location;
         }
 
-        // Store chief complaint turn into conversation history (Phase 7 Section 11)
         const ccQuestionText = lang === 'mr' ? 'तुम्हाला काय त्रास होतोय?' : lang === 'hi' ? 'आपको क्या तकलीफ हो रही है?' : 'What problem are you experiencing?';
         appState.conversationHistory = [{
           questionId: 'q.chief_complaint',
@@ -333,6 +336,7 @@ async function initBackendSession(lang) {
           inputMethod: isSpoken ? 'VOICE' : 'TOUCH',
           timestamp: new Date().toISOString(),
         }];
+
         if (recordRes.data?.next?.question) {
           currentBackendQuestion = recordRes.data.next.question;
           currentProgress = recordRes.data.next.progress;
@@ -357,7 +361,6 @@ async function initBackendSession(lang) {
 }
 
 async function handleAnswerSubmission(value, inputMethod) {
-  // If connected to backend question engine:
   if (appState.backendSessionId && currentBackendQuestion) {
     appState.latestAnswerQuestionId = currentBackendQuestion.id;
     try {
@@ -365,14 +368,13 @@ async function handleAnswerSubmission(value, inputMethod) {
       const recordRes = await api.recordClinicalResponse(appState.backendSessionId, {
         questionId: currentBackendQuestion.id,
         rawResponse: value,
-        normalizedValue: isVoice ? null : value, // Let backend AI extract from voice!
+        normalizedValue: isVoice ? null : value,
         inputMethod,
         language: appState.language,
       });
 
-      // Handle Stale Question Submission (HTTP 409)
       if (recordRes?.status === 409 || recordRes?.error === 'STALE_QUESTION_SUBMISSION') {
-        console.warn('[Conversation] Stale question submission detected. Re-synchronizing active question...');
+        console.warn('[Conversation] Stale question submission detected. Re-synchronizing...');
         const refreshRes = await api.getNextClinicalQuestion(appState.backendSessionId, appState.language);
         if (refreshRes?.data?.question) {
           currentBackendQuestion = refreshRes.data.question;
@@ -386,7 +388,6 @@ async function handleAnswerSubmission(value, inputMethod) {
       }
 
       if (recordRes?.success) {
-        // Sync authoritative state from clinical summary
         if (recordRes.data?.clinicalSummary) {
           const sum = recordRes.data.clinicalSummary;
           if (sum.primaryConcern) appState.complaint.primaryConcern = sum.primaryConcern;
@@ -395,7 +396,6 @@ async function handleAnswerSubmission(value, inputMethod) {
           if (sum.location) appState.complaint.location = sum.location;
         }
 
-        // If patient gave incidental info without answering active question:
         if (recordRes.data?.answersCurrentQuestion === false) {
           appState.latestNormalizedAnswer = 'INCIDENTAL_FACT_RECORDED';
           appState.latestSelectedOption = null;
@@ -404,7 +404,6 @@ async function handleAnswerSubmission(value, inputMethod) {
           return;
         }
 
-        // Determine mapped option and normalized answer
         const selectedOption = recordRes.data?.selectedOption;
         const mappedLabel =
           typeof selectedOption === 'object' && selectedOption !== null
@@ -422,7 +421,6 @@ async function handleAnswerSubmission(value, inputMethod) {
           appState.latestNormalizedAnswer = String(recordRes.data?.recorded?.value ?? value ?? 'null');
         }
 
-        // Store turn in conversation history (Section 8, 15, Phase 7 Section 11)
         appState.conversationHistory.push({
           questionId: currentBackendQuestion.id,
           questionText: currentBackendQuestion.text,
@@ -434,31 +432,6 @@ async function handleAnswerSubmission(value, inputMethod) {
           options: currentBackendQuestion.options || [],
           timestamp: new Date().toISOString(),
         });
-
-        // Visual feedback: brief selection flash on matching tile (Section 1)
-        if (selectedOption && currentBackendQuestion.options) {
-          const matchIdx = currentBackendQuestion.options.findIndex((opt) => {
-            const optVal = typeof opt === 'object' && opt !== null ? (opt.value ?? opt.id ?? opt) : opt;
-            const optLbl = typeof opt === 'object' && opt !== null ? (opt.label || opt.labels?.mr || opt.labels?.en || opt.value || '') : String(opt ?? '');
-            const sVal = typeof selectedOption === 'object' && selectedOption !== null ? (selectedOption.value ?? selectedOption.id ?? selectedOption) : selectedOption;
-            const sValStr = String(sVal ?? '').toLowerCase().trim();
-            const optValStr = String(optVal ?? '').toLowerCase().trim();
-            const optLblStr = String(optLbl ?? '').toLowerCase().trim();
-            return (
-              optVal === sVal ||
-              optValStr === sValStr ||
-              optLblStr === sValStr ||
-              (sValStr && optLblStr.includes(sValStr))
-            );
-          });
-          if (matchIdx !== -1) {
-            const matchedTile = document.querySelector(`.option-tile[data-opt-idx="${matchIdx}"]`);
-            if (matchedTile) {
-              matchedTile.classList.add('selected');
-              await new Promise((r) => setTimeout(r, 400));
-            }
-          }
-        }
 
         const nextResult = recordRes.data?.next;
         if (nextResult?.status === 'complete') {
@@ -473,7 +446,6 @@ async function handleAnswerSubmission(value, inputMethod) {
         router.renderCurrentScreen();
         return;
       } else {
-        // Extraction failed or unverified: DO NOT advance question! Keep on current question.
         appState.latestNormalizedAnswer = 'UNVERIFIED_VOICE';
         appState.latestSelectedOption = null;
         notifyStateChange('conversation');

@@ -1,6 +1,6 @@
 /**
- * Patient Progress Indicator Component (Section 10)
- * Uses patient-friendly progression without technical abbreviations.
+ * Patient Progress Indicator Component
+ * Dynamic horizontal stepper bound to actual state.
  */
 
 import { t } from '../i18n.js';
@@ -15,6 +15,7 @@ const STEP_SEQUENCE = [
   'conversation',
   'documents',
   'patientReview',
+  'submission',
 ];
 
 export function renderProgress(container) {
@@ -32,12 +33,16 @@ export function renderProgress(container) {
   const currentStepNum = currentIndex + 1;
   const progressPercent = Math.round((currentStepNum / totalSteps) * 100);
 
+  const stepLabel = `${t('step', appState.language)} ${currentStepNum} ${t('of', appState.language)} ${totalSteps}`;
+
   container.innerHTML = `
-    <div class="progress-track" role="progressbar" aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100">
-      <div class="progress-fill" style="width: ${progressPercent}%;"></div>
+    <div class="progress-track-wrapper">
+      <div class="progress-track" role="progressbar" aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100" aria-label="${stepLabel}">
+        <div class="progress-fill" style="width: ${progressPercent}%;"></div>
+      </div>
     </div>
     <div class="progress-label">
-      ${t('step', appState.language)} ${currentStepNum} ${t('of', appState.language)} ${totalSteps}
+      ${stepLabel}
     </div>
   `;
 }

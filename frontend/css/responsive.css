@@ -1,6 +1,6 @@
 /* ==============================================================================
    MediKiosk Kiosk Responsive Rules
-   Optimized for 16:9 Landscape displays (1920x1080, 1366x768) + tablets.
+   Optimized for 12-inch landscape kiosk (1024x768), 1366x768, 1440x900, 1920x1080
    ============================================================================== */
 
 @media (max-width: 1280px) {
@@ -10,7 +10,12 @@
   }
 
   .screen-card {
-    padding: 2rem 2.5rem;
+    padding: 2rem 2.25rem;
+  }
+
+  .screen-card-split {
+    gap: 1.75rem;
+    padding: 1.5rem 2rem;
   }
 }
 
@@ -25,30 +30,59 @@
   }
 
   .kiosk-stage {
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .screen-card {
+    padding: 1.75rem 2rem;
+  }
+
+  .option-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .screen-card-split {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 
 @media (max-height: 800px) {
   .kiosk-header {
-    height: 68px;
+    height: 64px;
   }
 
   .kiosk-footer {
-    height: 80px;
+    height: 72px;
   }
 
   .kiosk-stage {
-    padding: 1rem 2rem;
+    padding: 1rem 1.75rem;
   }
 
   .screen-card {
-    padding: 1.75rem 2.5rem;
+    padding: 1.5rem 2rem;
   }
 
   .voice-mic-button {
-    width: 90px;
-    height: 90px;
-    font-size: 2.5rem;
+    width: 88px;
+    height: 88px;
+    font-size: 2.25rem;
+  }
+
+  .voice-mic-container {
+    padding: 1rem;
+    margin: 0.75rem 0;
+  }
+
+  .option-tile {
+    min-height: 76px;
+    padding: 0.875rem 1.25rem;
+  }
+
+  .trust-badges-row {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
   }
 }

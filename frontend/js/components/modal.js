@@ -1,5 +1,6 @@
 /**
- * Accessible Modal Dialog Component (Section 35)
+ * Accessible Modal Dialog Component
+ * Clean white surface, high-contrast typography, accessible dismiss.
  */
 
 export function openModal({ title, contentHtml, onClose }) {
@@ -12,12 +13,12 @@ export function openModal({ title, contentHtml, onClose }) {
         <div class="modal-title" id="modal-title">
           ${title}
         </div>
-        <div class="modal-body" style="font-size: var(--font-size-md); margin-bottom: 2rem;">
+        <div class="modal-body">
           ${contentHtml}
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
-          <button id="btn-modal-close" class="btn btn-primary" style="min-width: 140px;">
-            Done
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+          <button id="btn-modal-close" class="btn btn-secondary" style="min-width: 140px; min-height: 48px;">
+            Done / बंद करा
           </button>
         </div>
       </div>

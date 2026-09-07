@@ -28,6 +28,13 @@ export const translations = {
     welcomeSubtitle: "Let's collect your health information before your doctor consultation.",
     welcomeEstimate: "This takes about 2 to 3 minutes.",
     welcomeAudioPrompt: "Welcome to MediKiosk. Please tap START or choose your language to begin.",
+    welcomeHeroHeadline: "Your health story,\nready for care.",
+    welcomeHeroSub: "We listen to your symptoms, organize your records, and prepare structured clinical information for your doctor.",
+    beginHealthCheck: "BEGIN HEALTH CHECK",
+    haveAbhaNumber: "I HAVE AN ABHA NUMBER",
+    trustSpeak: "Speak naturally",
+    trustScan: "Scan your records",
+    trustControl: "You're in control",
 
     // Language Screen
     selectLanguage: "Choose your language",
@@ -194,6 +201,13 @@ export const translations = {
     welcomeSubtitle: "डॉक्टर से परामर्श से पहले अपनी स्वास्थ्य जानकारी दर्ज करें।",
     welcomeEstimate: "इसमें केवल 2 से 3 मिनट लगेंगे।",
     welcomeAudioPrompt: "मेडीकियोस्क में आपका स्वागत है। शुरू करने के लिए 'शुरू करें' बटन दबाएं या अपनी भाषा चुनें।",
+    welcomeHeroHeadline: "आपकी स्वास्थ्य कहानी,\nदेखभाल के लिए तैयार।",
+    welcomeHeroSub: "हम आपके लक्षणों को सुनते हैं, पुराने कागजात व्यवस्थित करते हैं और डॉक्टर के लिए जरूरी जानकारी तैयार करते हैं।",
+    beginHealthCheck: "स्वास्थ्य जांच शुरू करें",
+    haveAbhaNumber: "मेरे पास आभा (ABHA) नंबर है",
+    trustSpeak: "स्वाभाविक रूप से बोलें",
+    trustScan: "दस्तावेज स्कैन करें",
+    trustControl: "नियंत्रण आपके हाथ में",
 
     // Language Screen
     selectLanguage: "अपनी भाषा चुनें",
@@ -361,6 +375,13 @@ export const translations = {
     welcomeSubtitle: "डॉक्टरांच्या तपासणीपूर्वी आपली आरोग्य माहिती सहज नोंदवा.",
     welcomeEstimate: "यासाठी फक्त २ ते ३ मिनिटे लागतील.",
     welcomeAudioPrompt: "मेडीकिऑस्कमध्ये आपले स्वागत आहे. सुरू करण्यासाठी 'सुरू करा' बटण दाबा किंवा आपली भाषा निवडा.",
+    welcomeHeroHeadline: "तुमची आरोग्य माहिती,\nउपचारासाठी सज्ज.",
+    welcomeHeroSub: "आम्ही तुमची लक्षणे समजून घेतो, जुनी कागदपत्रे व्यवस्थित करतो आणि डॉक्टरांसाठी योग्य माहिती तयार करतो.",
+    beginHealthCheck: "आरोग्य तपासणी सुरू करा",
+    haveAbhaNumber: "माझ्याकडे आभा (ABHA) क्रमांक आहे",
+    trustSpeak: "सहजतेने बोला",
+    trustScan: "कागदपत्रे स्कॅन करा",
+    trustControl: "नियंत्रण तुमच्या हाती",
 
     // Language Screen
     selectLanguage: "आपली भाषा निवडा",

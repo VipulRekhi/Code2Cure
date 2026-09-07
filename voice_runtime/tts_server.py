@@ -71,8 +71,7 @@ def init_tts_runtime():
 
     # Warm up synthesis pipeline so the first patient interaction is fast and responsive
     try:
-        print("[TTS Service] Pre-warming neural synthesis pipeline...")
-        synthesize_edge_tts("नमस्कार", "mr", 24000)
+        asyncio.run(synthesize_edge_tts("नमस्कार", "mr", 24000))
         print("[TTS Service] Pre-warming complete. Fluent Marathi voice ready.")
     except Exception as e:
         print(f"[TTS Service] Note on pre-warming: {e}")
@@ -179,15 +178,25 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class TTSHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    timeout = 25
+
+    def handle(self):
+        try:
+            super().handle()
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
 
     def _send_json(self, status: int, data: dict):
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Connection", "close")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(body)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
 
     def do_GET(self):
         if self.path in ("/health", "/status"):

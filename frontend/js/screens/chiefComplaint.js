@@ -1,6 +1,6 @@
 /**
- * Screen 6: Chief Complaint Screen (Section 19 & 20)
- * Integrates multimodal Voice State Machine + Touch tiles.
+ * Screen 6: Chief Complaint Screen
+ * Multimodal Landscape Split: Left Voice Interaction + Right Common Touch Options.
  */
 
 import { t } from '../i18n.js';
@@ -9,11 +9,12 @@ import { router } from '../router.js';
 import { renderVoiceButton } from '../components/voiceButton.js';
 import { speechService } from '../services/speechService.js';
 import { ttsService } from '../services/ttsService.js';
+import { audioController } from '../audio.js';
 
 export function renderChiefComplaintScreen() {
   const lang = appState.language;
 
-  // Clean isolation: if an active clinical session exists, wipe it when entering chief complaint
+  // Clean isolation: wipe any old clinical session when entering chief complaint
   if (appState.backendSessionId) {
     resetClinicalSession(false);
   }
@@ -45,26 +46,63 @@ export function renderChiefComplaintScreen() {
     )
     .join('');
 
+  // Map interpreted entity for the confirmation box if recognized
+  let interpretedText = null;
+  if (appState.complaint.id && appState.complaint.id !== 'OTHER') {
+    const optObj = complaintOptions.find((o) => o.id === appState.complaint.id);
+    if (optObj) {
+      interpretedText = t(optObj.labelKey, lang);
+      if (appState.complaint.duration?.value) {
+        interpretedText += ` • ${appState.complaint.duration.value} days`;
+      }
+    }
+  }
+
   const voiceBoxHtml = renderVoiceButton({
     status: appState.voice.status,
     transcript: appState.voice.transcript,
+    interpreted: interpretedText,
   });
 
   const html = `
-    <div class="screen-card">
-      <h1 class="kiosk-question-title">${t('complaintTitle', lang)}</h1>
-      <p class="kiosk-question-subtitle">${t('complaintSubtitle', lang)}</p>
+    <div class="screen-card" style="max-width: 1120px; margin: 0 auto;">
+      <!-- Audio Narration Pill -->
+      <button id="btn-complaint-audio" class="audio-prompt-bar">
+        <span aria-hidden="true">🔊</span>
+        <span>${t('listen', lang)}</span>
+      </button>
 
-      <!-- Multimodal Voice Section (Section 20) -->
-      ${voiceBoxHtml}
+      <!-- 2-Column Split: Left Voice Interaction, Right Touch Options -->
+      <div class="screen-card-split" style="padding: 0; align-items: start;">
+        <!-- Left: Voice Interaction Card -->
+        <div style="display: flex; flex-direction: column; justify-content: center; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem 1.75rem;">
+          <h2 style="font-size: var(--font-size-lg); color: var(--primary); font-weight: 800; margin-bottom: 0.5rem;">
+            ${t('complaintTitle', lang)}
+          </h2>
+          <p style="font-size: var(--font-size-xs); color: var(--muted-text); margin-bottom: 1.25rem;">
+            ${t('complaintSubtitle', lang)}
+          </p>
 
-      <div style="text-align: center; margin: 1.5rem 0; font-size: var(--font-size-base); font-weight: 700; color: var(--muted-text);">
-        — ${t('orChooseBelow', lang)} —
+          ${voiceBoxHtml}
+        </div>
+
+        <!-- Right: Touch Options Grid -->
+        <div>
+          <div style="font-size: var(--font-size-xs); font-weight: 700; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
+            ${t('orChooseBelow', lang)}
+          </div>
+
+          <div class="option-grid" style="grid-template-columns: repeat(2, 1fr); margin: 0; max-height: 480px; overflow-y: auto; padding-right: 0.5rem;">
+            ${tilesHtml}
+          </div>
+        </div>
       </div>
 
-      <!-- Touch Tiles (Section 21) -->
-      <div class="option-grid">
-        ${tilesHtml}
+      <!-- Back Action -->
+      <div style="margin-top: 1.5rem; display: flex; justify-content: flex-start;">
+        <button id="btn-complaint-back" class="btn btn-secondary" style="min-height: 48px;">
+          ← ${t('back', lang)}
+        </button>
       </div>
     </div>
   `;
@@ -72,7 +110,7 @@ export function renderChiefComplaintScreen() {
   return {
     html,
     attachEvents: () => {
-      // 1. Microphone Click (Acoustic echo prevention: stop TTS first)
+      // 1. Microphone Click
       document.getElementById('btn-voice-mic')?.addEventListener('click', () => {
         ttsService.stop();
 
@@ -89,7 +127,7 @@ export function renderChiefComplaintScreen() {
 
           if (status === 'LISTENING') {
             if (micBtn) micBtn.classList.add('listening');
-            if (statusText) statusText.textContent = t('tapListening', lang) || 'Listening... (Tap to stop)';
+            if (statusText) statusText.textContent = t('tapListening', lang) || 'Listening... Please speak';
             return;
           }
 
@@ -98,7 +136,7 @@ export function renderChiefComplaintScreen() {
               micBtn.classList.remove('listening');
               micBtn.setAttribute('disabled', 'true');
             }
-            if (statusText) statusText.textContent = t('processingVoice', lang) || 'Processing speech...';
+            if (statusText) statusText.textContent = t('processingVoice', lang) || 'Understanding your speech...';
             return;
           }
 
@@ -149,7 +187,7 @@ export function renderChiefComplaintScreen() {
               appState.complaint.id = 'OTHER';
             }
 
-            // Extract duration if explicitly spoken (supports 4 days, ranges, etc.)
+            // Extract duration if explicitly spoken
             if (lower.includes('६-७') || lower.includes('६ ते ७') || lower.includes('6-7') || lower.includes('6 to 7') || lower.includes('छह सात') || lower.includes('सहा सात')) {
               appState.complaint.duration = { min: 6, max: 7, unit: 'days' };
             } else if (lower.includes('चार दिवस') || lower.includes('चार दिन') || lower.includes('4 दिन') || lower.includes('४ दिन') || lower.includes('four days') || lower.includes('4 days') || lower.includes('४ दिवस')) {
@@ -173,24 +211,13 @@ export function renderChiefComplaintScreen() {
             return;
           }
 
-          // SERVICE_UNAVAILABLE or Error state
+          // Safe non-technical error handling
           if (micBtn) {
             micBtn.classList.remove('listening');
             micBtn.removeAttribute('disabled');
           }
           if (statusText) {
-            if (status === 'SERVICE_UNAVAILABLE' || error === 'ASR_SERVICE_OFFLINE') {
-              statusText.innerHTML = `
-                <div class="voice-alert" style="color: #b91c1c; font-weight: 500;">
-                  <span>${t('voiceUnavailable', lang)}</span><br>
-                  <small style="color: #4b5563;">${t('voiceUnavailableSub', lang)}</small>
-                </div>`;
-            } else {
-              const safeMessage = (message && !message.includes('port') && !message.includes('IndicConformer') && !message.includes('runtime'))
-                ? message
-                : `${t('voiceUnavailable', lang)} ${t('voiceUnavailableSub', lang)}`;
-              statusText.textContent = safeMessage;
-            }
+            statusText.textContent = t('voiceUnavailable', lang) || 'Voice service is temporarily unavailable. Please select below.';
           }
           notifyStateChange('voice');
         });
@@ -231,6 +258,27 @@ export function renderChiefComplaintScreen() {
           notifyStateChange('complaint');
           router.navigate('conversation');
         });
+      });
+
+      // 5. Back Action
+      document.getElementById('btn-complaint-back')?.addEventListener('click', () => {
+        router.navigate('opdSelection');
+      });
+
+      // 6. Audio Prompt Click
+      const audioBtn = document.getElementById('btn-complaint-audio');
+      audioBtn?.addEventListener('click', async () => {
+        if (audioController.isSpeaking) {
+          audioController.stop();
+          audioBtn.classList.remove('playing');
+          return;
+        }
+        if (audioController.isMuted) {
+          audioController.setMuted(false);
+        }
+        audioBtn.classList.add('playing');
+        await audioController.speak(t('complaintTitle', appState.language), appState.language);
+        audioBtn.classList.remove('playing');
       });
     },
   };

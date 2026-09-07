@@ -29,13 +29,29 @@
 body.high-contrast {
   --background: #000000;
   --surface: #121212;
-  --surface-subtle: #1e1e1e;
-  --text: #ffffff;
-  --text-secondary: #e2e8f0;
-  --muted-text: #cbd5e1;
-  --border: #ffffff;
-  --border-subtle: #94a3b8;
-  --primary: #4ade80;
-  --primary-bg: #052e16;
-  --primary-contrast: #000000;
+  --surface-subtle: #1E1E1E;
+  --text: #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --muted-text: #CBD5E1;
+  --border: #FFFFFF;
+  --border-subtle: #94A3B8;
+  --border-strong: #FFFFFF;
+  --primary: #4A90D9;
+  --primary-dark: #2A5480;
+  --primary-bg: #0C1E33;
+  --primary-contrast: #FFFFFF;
+  --teal: #10B981;
+}
+
+body.high-contrast .option-tile,
+body.high-contrast .screen-card,
+body.high-contrast .review-card,
+body.high-contrast .clinical-table-wrapper {
+  border-color: #FFFFFF;
+}
+
+body.high-contrast .btn-secondary {
+  background-color: #1E1E1E;
+  color: #FFFFFF;
+  border-color: #FFFFFF;
 }

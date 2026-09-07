@@ -1,5 +1,6 @@
 /**
- * Screen 4: Informed Consent Screen (Section 16 & 17)
+ * Screen 4: Informed Patient Consent Screen
+ * Digital Personal Data Protection (DPDP) compliant clear presentation.
  */
 
 import { t } from '../i18n.js';
@@ -11,50 +12,61 @@ export function renderConsentScreen() {
   const lang = appState.language;
 
   const html = `
-    <div class="screen-card">
-      <h1 class="kiosk-question-title">${t('consentTitle', lang)}</h1>
-      <p class="kiosk-question-subtitle">${t('consentSubtitle', lang)}</p>
-
+    <div class="screen-card" style="max-width: 980px; margin: 0 auto;">
       <!-- Audio Explanation Bar -->
       <button id="btn-consent-audio" class="audio-prompt-bar">
-        <span>🔊</span>
+        <span aria-hidden="true">🔊</span>
         <span>${t('consentAudioExplanation', lang)}</span>
       </button>
 
-      <!-- Clear, High-Contrast Bullet Points -->
-      <div style="background: var(--surface-subtle); border: 2px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 2rem;">
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 1.25rem; font-size: var(--font-size-md);">
-          <li style="display: flex; gap: 1rem; align-items: flex-start;">
-            <span style="font-size: 1.5rem; color: var(--primary);">✓</span>
+      <h1 class="kiosk-question-title" style="color: var(--primary);">
+        ${t('consentTitle', lang)}
+      </h1>
+      <p class="kiosk-question-subtitle">
+        ${t('consentSubtitle', lang)}
+      </p>
+
+      <!-- Clear, High-Contrast Bullet Points in Clean Container -->
+      <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.75rem 2rem; margin-bottom: 2rem;">
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 1rem; font-size: var(--font-size-base); color: var(--text);">
+          <li style="display: flex; gap: 0.875rem; align-items: flex-start;">
+            <span style="font-size: 1.25rem; color: var(--teal); font-weight: 800;" aria-hidden="true">✓</span>
             <span>${t('consentPoint1', lang)}</span>
           </li>
-          <li style="display: flex; gap: 1rem; align-items: flex-start;">
-            <span style="font-size: 1.5rem; color: var(--primary);">✓</span>
+          <li style="display: flex; gap: 0.875rem; align-items: flex-start;">
+            <span style="font-size: 1.25rem; color: var(--teal); font-weight: 800;" aria-hidden="true">✓</span>
             <span>${t('consentPoint2', lang)}</span>
           </li>
-          <li style="display: flex; gap: 1rem; align-items: flex-start;">
-            <span style="font-size: 1.5rem; color: var(--primary);">✓</span>
+          <li style="display: flex; gap: 0.875rem; align-items: flex-start;">
+            <span style="font-size: 1.25rem; color: var(--teal); font-weight: 800;" aria-hidden="true">✓</span>
             <span>${t('consentPoint3', lang)}</span>
           </li>
-          <li style="display: flex; gap: 1rem; align-items: flex-start;">
-            <span style="font-size: 1.5rem; color: var(--primary);">✓</span>
+          <li style="display: flex; gap: 0.875rem; align-items: flex-start;">
+            <span style="font-size: 1.25rem; color: var(--teal); font-weight: 800;" aria-hidden="true">✓</span>
             <span>${t('consentPoint4', lang)}</span>
           </li>
-          <li style="display: flex; gap: 1rem; align-items: flex-start;">
-            <span style="font-size: 1.5rem; color: var(--primary);">✓</span>
+          <li style="display: flex; gap: 0.875rem; align-items: flex-start;">
+            <span style="font-size: 1.25rem; color: var(--teal); font-weight: 800;" aria-hidden="true">✓</span>
             <span>${t('consentPoint5', lang)}</span>
           </li>
         </ul>
       </div>
 
-      <!-- Consent Actions -->
-      <div style="display: flex; gap: 1.5rem; justify-content: flex-end;">
-        <button id="btn-consent-decline" class="btn btn-secondary" style="min-width: 200px;">
-          ${t('consentDecline', lang)}
+      <!-- Action Row -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+        <button id="btn-consent-back" class="btn btn-secondary" style="min-height: 54px;">
+          ← ${t('back', lang)}
         </button>
-        <button id="btn-consent-agree" class="btn btn-primary" style="min-width: 280px;">
-          ${t('consentAgree', lang)} ➔
-        </button>
+
+        <div style="display: flex; gap: 1rem;">
+          <button id="btn-consent-decline" class="btn btn-secondary" style="min-width: 160px; min-height: 54px; color: var(--text-secondary);">
+            ${t('consentDecline', lang)}
+          </button>
+          <button id="btn-consent-agree" class="btn btn-primary" style="min-width: 260px; min-height: 54px; font-size: var(--font-size-md);">
+            <span>${t('consentAgree', lang)}</span>
+            <span aria-hidden="true">➔</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -95,6 +107,10 @@ export function renderConsentScreen() {
         router.openHelpModal(
           'Consent is required to continue. A hospital attendant can assist you with manual paper OPD registration.'
         );
+      });
+
+      document.getElementById('btn-consent-back')?.addEventListener('click', () => {
+        router.navigate('identify');
       });
     },
   };

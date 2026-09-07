@@ -7,105 +7,119 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   min-height: var(--touch-standard);
-  padding: 0 2rem;
+  padding: 0 1.75rem;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   font-weight: 700;
   text-align: center;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   touch-action: manipulation;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
 .btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .btn-primary {
   background-color: var(--primary);
   color: var(--primary-contrast);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 6px rgba(26, 58, 92, 0.2);
 }
 .btn-primary:hover {
   background-color: var(--primary-dark);
 }
 
 .btn-secondary {
-  background-color: var(--surface-subtle);
+  background-color: var(--surface);
   color: var(--text);
   border: 2px solid var(--border);
 }
 .btn-secondary:hover {
-  background-color: var(--border-subtle);
+  background-color: var(--surface-subtle);
+  border-color: var(--border-strong);
+}
+
+.btn-teal {
+  background-color: var(--teal);
+  color: #FFFFFF;
+}
+.btn-teal:hover {
+  background-color: #006666;
 }
 
 .btn-huge {
   min-height: var(--touch-large);
-  padding: 0 3rem;
-  font-size: var(--font-size-lg);
-  border-radius: var(--radius-lg);
+  padding: 0 2.5rem;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+  letter-spacing: 0.02em;
 }
 
 .btn-help {
-  min-height: 52px;
-  padding: 0 1.25rem;
+  min-height: 42px;
+  padding: 0 1rem;
   border-radius: var(--radius-full);
-  background-color: var(--warning-bg);
-  color: var(--warning);
-  border: 2px solid var(--warning);
-  font-size: var(--font-size-base);
+  background-color: var(--surface-subtle);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-xs);
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
 }
 .btn-help:hover {
-  background-color: #fde68a;
+  background-color: var(--border);
+  color: var(--primary-dark);
 }
 
-/* 2. Grid of Options */
+/* 2. Grid of Options & Touch Tiles */
 .option-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
   width: 100%;
-  margin: 1.5rem 0;
+  margin: 1.25rem 0;
 }
 
 .option-tile {
-  min-height: 110px;
+  min-height: 90px;
   background: var(--surface);
-  border: 3px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem 2rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
   text-align: left;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
   cursor: pointer;
+  user-select: none;
 }
 
 .option-tile:hover {
-  border-color: var(--primary-light);
-  background-color: var(--primary-bg);
+  border-color: var(--secondary);
+  background-color: var(--secondary-bg);
 }
 
 .option-tile.selected {
   border-color: var(--primary);
   background-color: var(--primary-bg);
-  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.2);
+  box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.15);
 }
 
 .option-tile-icon {
-  font-size: 2.25rem;
+  font-size: 2rem;
   flex-shrink: 0;
 }
 
 .option-tile-text {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
@@ -115,71 +129,111 @@
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--muted-text);
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
 }
 
 /* 3. Audio Prompt Bar */
 .audio-prompt-bar {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.5rem;
+  gap: 0.5rem;
+  padding: 0.5rem 1.15rem;
   background-color: var(--info-bg);
   color: var(--info);
-  border: 1px solid #bae6fd;
+  border: 1px solid #BAE6FD;
   border-radius: var(--radius-full);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   cursor: pointer;
   align-self: flex-start;
-  transition: background-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .audio-prompt-bar:hover {
-  background-color: #bae6fd;
+  background-color: #E0F2FE;
+  border-color: #7DD3FC;
 }
 
 .audio-prompt-bar.playing {
   animation: audioPulse 1.2s infinite ease-in-out;
+  background-color: #BAE6FD;
+  border-color: #38BDF8;
 }
 
 @keyframes audioPulse {
   0% { transform: scale(1); }
-  50% { transform: scale(1.03); background-color: #7dd3fc; }
+  50% { transform: scale(1.02); }
   100% { transform: scale(1); }
 }
 
-/* 4. Accessible Modal (Section 35) */
+/* 4. Trust Badges / Hero Features (Welcome Screen) */
+.trust-badges-row {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.trust-badge-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.trust-badge-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+/* 5. Accessible Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: 2rem;
-  animation: fadeIn 150ms ease-out;
+  padding: 1.5rem;
+  animation: fadeIn 120ms ease-out;
 }
 
 .modal-dialog {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 2.5rem 3rem;
-  max-width: 700px;
+  padding: 2.25rem 2.5rem;
+  max-width: 650px;
   width: 100%;
   box-shadow: var(--shadow-lg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
 }
 
 .modal-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 800;
-  color: var(--text);
-  margin-bottom: 1.5rem;
+  color: var(--primary);
+  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
+}
+
+.modal-body {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 2rem;
 }

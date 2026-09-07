@@ -21,7 +21,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 
-  /* Kiosk touch protection: Prevent text selection & callouts */
+  /* Kiosk touch protection: Prevent accidental text selection & callouts */
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -29,9 +29,9 @@ html, body {
   touch-action: manipulation;
 }
 
-/* Accessible focus outlines for keyboard/switch device testing */
+/* Accessible, clear focus outlines for keyboard & assistive navigation */
 :focus-visible {
-  outline: 4px solid var(--primary-light);
+  outline: 3px solid var(--secondary);
   outline-offset: 3px;
 }
 
@@ -39,10 +39,12 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.25;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 p {
   color: var(--text-secondary);
+  line-height: 1.55;
 }
 
 button {

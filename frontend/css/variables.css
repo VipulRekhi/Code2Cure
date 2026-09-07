@@ -1,67 +1,78 @@
 /* ==============================================================================
    MediKiosk Kiosk Design Tokens & Variables
-   Healthcare aesthetic: calm, trustworthy, high-contrast, accessible.
+   Healthcare aesthetic: Sovereign, calm, clinical, high-contrast, accessible.
+   Primary Navy: #1A3A5C | Secondary Sky: #4A90D9 | Safe Teal: #008080
    ============================================================================== */
 
 :root {
-  /* Brand & Primary Palette */
-  --primary: #15803d;             /* Trustworthy Forest Green */
-  --primary-light: #22c55e;
-  --primary-dark: #166534;
-  --primary-bg: #f0fdf4;
-  --primary-contrast: #ffffff;
+  /* Brand & Sovereign Healthcare Palette */
+  --primary: #1A3A5C;             /* Deep Clinical Sovereign Navy */
+  --primary-dark: #11273F;        /* Dark Navy for high-contrast emphasis */
+  --primary-light: #2A5480;       /* Navy tint for subtle accents */
+  --primary-bg: #EDF4FB;          /* Very soft navy tint fill */
+  --primary-contrast: #FFFFFF;    /* Pure white text on navy */
 
-  /* Surfaces & Canvas */
-  --background: #f8fafc;          /* Calm off-white / slate-50 */
-  --surface: #ffffff;             /* Crisp white surface */
-  --surface-subtle: #f1f5f9;      /* Light gray container background */
-  --surface-elevated: #ffffff;
+  --secondary: #4A90D9;           /* Secondary Sky Blue */
+  --secondary-bg: #F0F6FC;        /* Sky blue container tint */
+  --teal: #008080;                /* Safe Sovereign Teal */
+  --teal-bg: #E6F4F4;             /* Safe teal container tint */
+
+  /* Surfaces & Canvas (White content surfaces on soft light-gray canvas) */
+  --background: #F5F7FA;          /* Soft light-gray kiosk canvas */
+  --surface: #FFFFFF;             /* Pure white content card */
+  --surface-subtle: #F1F5F9;      /* Slate-100 container / divider background */
+  --surface-elevated: #FFFFFF;
 
   /* Typography Colors */
-  --text: #0f172a;                /* Deep slate-900 for maximum readability */
-  --text-secondary: #334155;      /* Slate-700 */
-  --muted-text: #64748b;          /* Slate-500 */
-  --border: #cbd5e1;              /* Slate-300 accessible boundary */
-  --border-subtle: #e2e8f0;       /* Slate-200 */
+  --text: #1F2937;                /* Slate-800 accessible primary charcoal */
+  --text-secondary: #4B5563;      /* Slate-600 secondary clinical description */
+  --muted-text: #6B7280;          /* Slate-500 helper / metadata */
+  --border: #E5E7EB;              /* Slate-200 accessible boundary */
+  --border-subtle: #F3F4F6;       /* Slate-100 very subtle separator */
+  --border-strong: #CBD5E1;       /* Slate-300 stronger boundary */
 
   /* Healthcare Semantic Signals */
-  --success: #16a34a;
-  --success-bg: #dcfce7;
-  --warning: #d97706;
-  --warning-bg: #fef3c7;
-  --danger: #dc2626;              /* Reserved strictly for urgent errors/red-flags */
-  --danger-bg: #fee2e2;
-  --info: #0284c7;
-  --info-bg: #e0f2fe;
+  --success: #10B981;             /* Emerald 500 */
+  --success-bg: #ECFDF5;          /* Emerald 50 */
+  --success-border: #A7F3D0;
+  --warning: #F59E0B;             /* Amber 500 */
+  --warning-bg: #FFFBEB;          /* Amber 50 */
+  --warning-border: #FDE68A;
+  --danger: #EF4444;              /* Red 500 - reserved strictly for urgent red-flags */
+  --danger-bg: #FEF2F2;           /* Red 50 */
+  --danger-border: #FECACA;
+  --info: #0284C7;                /* Sky 600 */
+  --info-bg: #F0F9FF;             /* Sky 50 */
 
-  /* Kiosk Touch Target Metrics */
+  /* Kiosk Touch Target Metrics (1024x768 landscape touchscreen optimized) */
   --touch-min: 48px;              /* Minimum accessibility baseline */
-  --touch-standard: 64px;         /* Standard interactive button height */
-  --touch-large: 84px;            /* Primary CTA / major touch cards */
-  --touch-huge: 104px;            /* Big language / mode selection tiles */
+  --touch-standard: 56px;         /* Standard interactive button height */
+  --touch-large: 72px;            /* Primary CTA / major touch buttons */
+  --touch-huge: 96px;             /* Big language / mode selection tiles */
 
   /* Typography Scale */
-  --font-family: 'Noto Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-size-xs: 1rem;           /* 16px (minimum for kiosk distance) */
-  --font-size-sm: 1.125rem;       /* 18px */
-  --font-size-base: 1.25rem;      /* 20px */
-  --font-size-md: 1.5rem;         /* 24px */
-  --font-size-lg: 1.875rem;       /* 30px */
-  --font-size-xl: 2.25rem;        /* 36px */
-  --font-size-2xl: 2.75rem;       /* 44px */
-  --font-size-hero: 3.25rem;      /* 52px */
+  --font-family: 'Inter', 'Atkinson Hyperlegible Next', 'Noto Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.9375rem;      /* 15px (secondary captions) */
+  --font-size-sm: 1.0625rem;      /* 17px (standard body minimum) */
+  --font-size-base: 1.1875rem;    /* 19px (standard readable body) */
+  --font-size-md: 1.375rem;       /* 22px (subheadings, button labels) */
+  --font-size-lg: 1.625rem;       /* 26px (section headers) */
+  --font-size-xl: 2rem;           /* 32px (card titles) */
+  --font-size-2xl: 2.5rem;        /* 40px (prominent screen titles) */
+  --font-size-hero: 3rem;         /* 48px (welcome hero headline) */
 
-  /* Radii & Shadows */
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  /* Radii & Shadows (Calm, restrained, professional — not bubbly or SaaS-like) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(26, 58, 92, 0.07);
+  --shadow-lg: 0 10px 24px rgba(26, 58, 92, 0.10);
 
-  /* Animation Timings */
+  /* Animation Timings (Restrained, calm micro-interactions) */
   --transition-fast: 150ms ease-out;
   --transition-normal: 250ms ease;
 }

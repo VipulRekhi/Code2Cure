@@ -1,18 +1,30 @@
 /**
- * Screen 5: OPD / Department Selection (Section 18)
+ * Screen 5: OPD / Department Selection
+ * Clear selection of hospital clinical intake path.
  */
 
 import { t } from '../i18n.js';
 import { appState, notifyStateChange } from '../state.js';
 import { router } from '../router.js';
+import { audioController } from '../audio.js';
 
 export function renderOpdSelectionScreen() {
   const lang = appState.language;
 
   const html = `
-    <div class="screen-card">
-      <h1 class="kiosk-question-title">${t('opdTitle', lang)}</h1>
-      <p class="kiosk-question-subtitle">${t('opdSubtitle', lang)}</p>
+    <div class="screen-card" style="max-width: 980px; margin: 0 auto;">
+      <!-- Audio Narration Pill -->
+      <button id="btn-opd-audio" class="audio-prompt-bar">
+        <span aria-hidden="true">🔊</span>
+        <span>${t('listen', lang)}</span>
+      </button>
+
+      <h1 class="kiosk-question-title" style="color: var(--primary);">
+        ${t('opdTitle', lang)}
+      </h1>
+      <p class="kiosk-question-subtitle">
+        ${t('opdSubtitle', lang)}
+      </p>
 
       <div class="option-grid">
         <!-- General Medicine -->
@@ -34,13 +46,19 @@ export function renderOpdSelectionScreen() {
         </div>
 
         <!-- Other Specialist -->
-        <div id="opt-opd-other" class="option-tile">
+        <div id="opt-opd-other" class="option-tile ${appState.opdMode === 'OTHER' ? 'selected' : ''}">
           <div class="option-tile-icon">🏥</div>
           <div>
             <div class="option-tile-text">${t('opdOther', lang)}</div>
             <div class="option-tile-subtext">${t('opdOtherSub', lang)}</div>
           </div>
         </div>
+      </div>
+
+      <div style="margin-top: 2rem; display: flex; justify-content: flex-start;">
+        <button id="btn-opd-back" class="btn btn-secondary" style="min-height: 50px;">
+          ← ${t('back', lang)}
+        </button>
       </div>
     </div>
   `;
@@ -64,6 +82,22 @@ export function renderOpdSelectionScreen() {
         appState.opdMode = 'OTHER';
         notifyStateChange('opdMode');
         router.navigate('chiefComplaint');
+      });
+
+      document.getElementById('btn-opd-back')?.addEventListener('click', () => {
+        router.navigate('consent');
+      });
+
+      const audioBtn = document.getElementById('btn-opd-audio');
+      audioBtn?.addEventListener('click', async () => {
+        if (audioController.isSpeaking) {
+          audioController.stop();
+          audioBtn.classList.remove('playing');
+          return;
+        }
+        audioBtn.classList.add('playing');
+        await audioController.speak(t('opdTitle', appState.language), appState.language);
+        audioBtn.classList.remove('playing');
       });
     },
   };

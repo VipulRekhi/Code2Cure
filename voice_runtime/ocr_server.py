@@ -29,15 +29,25 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class OCRHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    timeout = 25
+
+    def handle(self):
+        try:
+            super().handle()
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
 
     def _send_json(self, status: int, data: dict):
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Connection", "close")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(body)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
 
     def do_GET(self):
         if self.path in ("/health", "/status"):
@@ -119,21 +129,25 @@ class OCRHandler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "Not Found"})
 
-def start_ocr_server(host=HOST, port=PORT):
-    # Pre-warm OCR engine
-    try:
-        try:
-            from voice_runtime.ocr_runtime import get_ocr_engine
-        except ModuleNotFoundError:
-            from ocr_runtime import get_ocr_engine
-        print(f"[OCR Service (Port {port})] Pre-warming PaddleOCR Devanagari engine...")
-        get_ocr_engine()
-        print(f"[OCR Service (Port {port})] PaddleOCR engine pre-warmed and ready.")
-    except Exception as e:
-        print(f"[OCR Service (Port {port})] Note on OCR pre-warming: {e}")
+import threading
 
+def start_ocr_server(host=HOST, port=PORT):
     server = ThreadedHTTPServer((host, port), OCRHandler)
     print(f"[OCR Service (Port {port})] PaddleOCR Devanagari OCR online at http://{host}:{port}")
+
+    def _warmup():
+        try:
+            try:
+                from voice_runtime.ocr_runtime import get_ocr_engine
+            except ModuleNotFoundError:
+                from ocr_runtime import get_ocr_engine
+            print(f"[OCR Service (Port {port})] Pre-warming PaddleOCR Devanagari engine in background...")
+            get_ocr_engine()
+            print(f"[OCR Service (Port {port})] PaddleOCR engine pre-warmed and ready.")
+        except Exception as e:
+            print(f"[OCR Service (Port {port})] Note on OCR pre-warming: {e}")
+
+    threading.Thread(target=_warmup, daemon=True).start()
     return server
 
 if __name__ == "__main__":

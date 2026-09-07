@@ -4,10 +4,47 @@ class AudioController {
   constructor() {
     this.audioCtx = null;
     this.listeners = new Set();
+    this.muteListeners = new Set();
+    this._muted = false;
   }
 
   get isSpeaking() {
     return ttsService.isSpeaking;
+  }
+
+  get isMuted() {
+    return this._muted;
+  }
+
+  setMuted(muted) {
+    const nextState = Boolean(muted);
+    if (this._muted !== nextState) {
+      this._muted = nextState;
+      if (this._muted && this.isSpeaking) {
+        this.stop();
+      }
+      this._notifyMuteListeners();
+    }
+  }
+
+  toggleMute() {
+    this.setMuted(!this._muted);
+    return this._muted;
+  }
+
+  onMuteChange(callback) {
+    this.muteListeners.add(callback);
+    return () => this.muteListeners.delete(callback);
+  }
+
+  _notifyMuteListeners() {
+    this.muteListeners.forEach((fn) => {
+      try {
+        fn(this._muted);
+      } catch (err) {
+        console.error('[Audio] Mute listener error:', err);
+      }
+    });
   }
 
   /**
@@ -15,6 +52,7 @@ class AudioController {
    * Gentle Hospital Chime (soft harmonic sine wave).
    */
   playChime() {
+    if (this._muted) return;
     try {
       const AudioContextClass = typeof window !== 'undefined' ? window.AudioContext || window.webkitAudioContext : null;
       if (!AudioContextClass) return;
@@ -62,6 +100,9 @@ class AudioController {
    * Delegates speech synthesis to centralized ttsService with natural sentence processing.
    */
   async speak(text, lang = 'mr') {
+    if (this._muted) {
+      return { success: false, reason: 'muted' };
+    }
     return await ttsService.speak({ text, language: lang });
   }
 

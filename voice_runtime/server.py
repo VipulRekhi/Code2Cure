@@ -53,23 +53,23 @@ def run_all(asr_port=DEFAULT_ASR_PORT, ocr_port=DEFAULT_OCR_PORT, tts_port=DEFAU
 
     servers = []
 
-    # 1. Start ASR
+    # 1. Start TTS (Multilingual Neural TTS on Port 8003)
+    tts_srv = start_tts_server(host, tts_port)
+    servers.append(tts_srv)
+    t_tts = threading.Thread(target=tts_srv.serve_forever, daemon=True)
+    t_tts.start()
+
+    # 2. Start ASR (IndicConformer on Port 8001)
     asr_srv = start_asr_server(host, asr_port)
     servers.append(asr_srv)
     t_asr = threading.Thread(target=asr_srv.serve_forever, daemon=True)
     t_asr.start()
 
-    # 2. Start OCR
+    # 3. Start OCR (PaddleOCR on Port 8002)
     ocr_srv = start_ocr_server(host, ocr_port)
     servers.append(ocr_srv)
     t_ocr = threading.Thread(target=ocr_srv.serve_forever, daemon=True)
     t_ocr.start()
-
-    # 3. Start TTS
-    tts_srv = start_tts_server(host, tts_port)
-    servers.append(tts_srv)
-    t_tts = threading.Thread(target=tts_srv.serve_forever, daemon=True)
-    t_tts.start()
 
     print("\n[Orchestrator] All 3 sovereign services running cleanly on dedicated ports.")
     print("[Orchestrator] Ready to process requests. Press Ctrl+C to stop.\n")
