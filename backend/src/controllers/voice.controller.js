@@ -114,15 +114,15 @@ export const voiceController = {
       if (!result.success || !result.audioBuffer) {
         return res.status(200).json({
           success: false,
-          fallbackToBrowser: true,
+          fallbackToBrowser: false,
           error: result.error || 'TTS_UNAVAILABLE',
-          message: result.message || 'Neural speech runtime is offline.',
+          message: result.message || 'Neural speech runtime is temporarily offline.',
           diagnostics: result.diagnostics || {
             provider: 'neural-tts',
             language,
             sampleRate: voiceConfig.tts.sampleRate,
             format: 'wav',
-            fallback: true,
+            fallback: false,
             fallbackReason: result.error || 'UNAVAILABLE',
           },
           requestId,
@@ -178,9 +178,11 @@ export const voiceController = {
    * Reports health and actual runtime state of the voice system.
    */
   async getStatus(req, res) {
-    const isReachable = await isServiceReachable(voiceConfig.tts.endpoint, 250);
+    const asrReachable = await isServiceReachable(voiceConfig.asr.endpoint, 250);
+    const ttsReachable = await isServiceReachable(voiceConfig.tts.endpoint, 250);
 
-    const runtimeStatus = isReachable ? 'ready' : 'offline';
+    const asrStatus = asrReachable ? 'ready' : 'offline';
+    const ttsStatus = ttsReachable ? 'ready' : 'offline';
 
     res.status(200).json({
       success: true,
@@ -188,7 +190,7 @@ export const voiceController = {
         asr: {
           provider: voiceConfig.asr.provider,
           mode: voiceConfig.asr.mode,
-          status: isReachable ? 'ready' : 'offline',
+          status: asrStatus,
           endpoint: voiceConfig.asr.endpoint,
           sampleRate: voiceConfig.asr.sampleRate,
           supportedLanguages: voiceConfig.asr.supportedLanguages,
@@ -196,21 +198,21 @@ export const voiceController = {
         tts: {
           provider: voiceConfig.tts.provider,
           mode: voiceConfig.tts.mode,
-          status: runtimeStatus,
+          status: ttsStatus,
           endpoint: voiceConfig.tts.endpoint,
           sampleRate: voiceConfig.tts.sampleRate,
           supportedLanguages: voiceConfig.tts.supportedLanguages,
           marathi: {
             provider: voiceConfig.tts.marathiProvider,
-            status: runtimeStatus,
+            status: ttsStatus,
           },
           hindi: {
             provider: voiceConfig.tts.hindiProvider,
-            status: runtimeStatus,
+            status: ttsStatus,
           },
           english: {
             provider: voiceConfig.tts.englishProvider,
-            status: runtimeStatus,
+            status: ttsStatus,
           },
         },
       },

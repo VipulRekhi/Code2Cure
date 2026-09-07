@@ -173,13 +173,24 @@ export function renderChiefComplaintScreen() {
             return;
           }
 
-          // IDLE or error state
+          // SERVICE_UNAVAILABLE or Error state
           if (micBtn) {
             micBtn.classList.remove('listening');
             micBtn.removeAttribute('disabled');
           }
           if (statusText) {
-            statusText.textContent = message || t('speakAnswer', lang);
+            if (status === 'SERVICE_UNAVAILABLE' || error === 'ASR_SERVICE_OFFLINE') {
+              statusText.innerHTML = `
+                <div class="voice-alert" style="color: #b91c1c; font-weight: 500;">
+                  <span>${t('voiceUnavailable', lang)}</span><br>
+                  <small style="color: #4b5563;">${t('voiceUnavailableSub', lang)}</small>
+                </div>`;
+            } else {
+              const safeMessage = (message && !message.includes('port') && !message.includes('IndicConformer') && !message.includes('runtime'))
+                ? message
+                : `${t('voiceUnavailable', lang)} ${t('voiceUnavailableSub', lang)}`;
+              statusText.textContent = safeMessage;
+            }
           }
           notifyStateChange('voice');
         });

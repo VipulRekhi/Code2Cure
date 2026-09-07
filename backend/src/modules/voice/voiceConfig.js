@@ -11,7 +11,8 @@ export const voiceConfig = {
   asr: {
     provider: process.env.ASR_PROVIDER || 'indicconformer',
     mode: process.env.ASR_MODE || 'mock', // 'indicconformer' | 'mock'
-    endpoint: process.env.ASR_ENDPOINT || 'http://127.0.0.1:8001/asr',
+    endpoint: process.env.ASR_ENDPOINT || (process.env.ASR_URL ? `${process.env.ASR_URL}/asr` : 'http://127.0.0.1:8001/asr'),
+    healthUrl: process.env.ASR_HEALTH_URL || (process.env.ASR_URL ? `${process.env.ASR_URL}/health` : 'http://127.0.0.1:8001/health'),
     timeoutMs: parseInt(process.env.ASR_TIMEOUT_MS || '10000', 10),
     sampleRate: 16000,
     channels: 1, // Mono
@@ -24,11 +25,12 @@ export const voiceConfig = {
   tts: {
     provider: process.env.TTS_PROVIDER || 'neural-tts',
     mode: process.env.TTS_MODE || 'neural-tts', // 'neural-tts' | 'mock'
-    endpoint: process.env.TTS_ENDPOINT || 'http://127.0.0.1:8001/tts',
+    endpoint: process.env.TTS_ENDPOINT || (process.env.TTS_URL ? `${process.env.TTS_URL}/tts` : 'http://127.0.0.1:8003/tts'),
+    healthUrl: process.env.TTS_HEALTH_URL || (process.env.TTS_URL ? `${process.env.TTS_URL}/health` : 'http://127.0.0.1:8003/health'),
     marathiProvider: process.env.TTS_MARATHI_PROVIDER || 'mr-IN-AarohiNeural / facebook/mms-tts-mar',
     hindiProvider: process.env.TTS_HINDI_PROVIDER || 'hi-IN-SwaraNeural / facebook/mms-tts-hin',
     englishProvider: process.env.TTS_ENGLISH_PROVIDER || 'en-IN-NeerjaNeural / facebook/mms-tts-eng',
-    timeoutMs: parseInt(process.env.TTS_TIMEOUT_MS || '12000', 10),
+    timeoutMs: parseInt(process.env.TTS_TIMEOUT_MS || '45000', 10),
     sampleRate: 24000, // 24kHz standard studio quality
     channels: 1, // Mono
     supportedLanguages: ['en', 'hi', 'mr'],

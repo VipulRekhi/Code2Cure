@@ -9,6 +9,24 @@ import { isServiceReachable } from '../socketProbe.js';
 export const indicConformerProvider = {
   name: 'indicconformer-asr-provider',
 
+  async checkHealth() {
+    const healthUrl = voiceConfig.asr.healthUrl;
+    try {
+      const reachable = await isServiceReachable(healthUrl, 250);
+      if (!reachable) return { ready: false, service: 'indicconformer', reason: 'connection_refused' };
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 1000);
+      const res = await fetch(healthUrl, { signal: controller.signal });
+      clearTimeout(tid);
+      if (res.ok) {
+        return await res.json();
+      }
+      return { ready: false, service: 'indicconformer', status: res.status };
+    } catch (e) {
+      return { ready: false, service: 'indicconformer', error: e.message };
+    }
+  },
+
   async transcribe({ audioBuffer, base64Audio, language = 'mr', activeQuestion = null, requestId = null, sessionId = null }) {
     const startTime = Date.now();
     const endpoint = voiceConfig.asr.endpoint;
@@ -34,11 +52,11 @@ export const indicConformerProvider = {
     // Fast connectivity probe (<250ms) to prevent 10-second blocking when runtime is offline
     const isReachable = await isServiceReachable(endpoint, 250);
     if (!isReachable) {
-      console.warn(`[IndicConformer] ASR service offline at ${endpoint}. Fast fail-over to client speech recognition (<10ms).`);
+      console.warn(`[IndicConformer] ASR service offline at ${endpoint}. Fast fail-over to touch/manual selection (<10ms).`);
       return {
         success: false,
         error: 'ASR_SERVICE_OFFLINE',
-        message: 'IndicConformer speech recognition runtime is offline at port 8001. Engaging client speech recognition.',
+        message: 'Voice service is temporarily unavailable. Please try again or use the buttons below.',
         transcript: '',
         requestId,
         sessionId,

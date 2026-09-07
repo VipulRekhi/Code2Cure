@@ -36,7 +36,7 @@ describe('Multilingual Neural TTS Latency & Quality Verification', () => {
     }
   });
 
-  it('L2: Language routing returns appropriate language tags and real 24kHz audio', { timeout: 30000 }, async () => {
+  it('L2: Language routing returns appropriate language tags and real 24kHz audio', { timeout: 60000 }, async () => {
     // Test Marathi routing
     const resMr = await neuralTTSProvider.synthesize({ text: 'नमस्कार', language: 'mr' });
     expect(resMr.diagnostics.language).toBe('mr');

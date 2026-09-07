@@ -10,6 +10,24 @@ import { isServiceReachable } from '../socketProbe.js';
 export const neuralTTSProvider = {
   name: 'neural-tts-provider',
 
+  async checkHealth() {
+    const healthUrl = voiceConfig.tts.healthUrl;
+    try {
+      const reachable = await isServiceReachable(healthUrl, 250);
+      if (!reachable) return { ready: false, service: 'neural-tts', reason: 'connection_refused' };
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 1000);
+      const res = await fetch(healthUrl, { signal: controller.signal });
+      clearTimeout(tid);
+      if (res.ok) {
+        return await res.json();
+      }
+      return { ready: false, service: 'neural-tts', status: res.status };
+    } catch (e) {
+      return { ready: false, service: 'neural-tts', error: e.message };
+    }
+  },
+
   async synthesize({ text, language = 'mr', referenceVoice = null }) {
     const startTime = Date.now();
     const endpoint = voiceConfig.tts.endpoint;
@@ -37,7 +55,7 @@ export const neuralTTSProvider = {
       return {
         success: false,
         error: 'TTS_SERVICE_OFFLINE',
-        message: 'Neural speech runtime is offline at port 8001.',
+        message: 'Speech synthesis service is temporarily unavailable.',
         audioBuffer: null,
         sampleRate: voiceConfig.tts.sampleRate,
         latency: Date.now() - startTime,

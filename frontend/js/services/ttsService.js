@@ -453,10 +453,13 @@ export class NeuralTTSProvider {
   }
 
   async speak(text, language = 'mr', options = {}) {
+    const requestId = options.requestId || `tts-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    this.activeRequestId = requestId;
+
     try {
       this.stop();
 
-      // Fast request synthesized neural audio from backend
+      // Request synthesized neural audio from backend with requestId
       const res = await fetch('/api/voice/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -464,6 +467,7 @@ export class NeuralTTSProvider {
           text,
           language,
           questionId: options.questionId || null,
+          requestId,
         }),
       });
 
@@ -477,11 +481,18 @@ export class NeuralTTSProvider {
       }
 
       if (!data.success || !data.data?.audioBase64) {
-        if (data.fallbackToBrowser) {
-          console.info(`[NeuralTTS Provider] Backend fallbackToBrowser active (${data.error}). Diagnostic:`, data.diagnostics);
-          return await this.fallback.speak(text, language, options);
-        }
-        throw new Error(data.error || 'No audio payload in TTS response');
+        console.warn(`[NeuralTTS Provider] Speech synthesis unavailable (${data.error || 'NO_AUDIO'}). Request ID: ${requestId}`);
+        return {
+          success: false,
+          error: data.error || 'TTS_SYNTHESIS_FAILED',
+          requestId,
+        };
+      }
+
+      // Check if a newer speak request was issued while waiting for fetch
+      if (this.activeRequestId !== requestId) {
+        console.info(`[NeuralTTS Provider] Superseded request ${requestId} cancelled in favor of ${this.activeRequestId}`);
+        return { success: false, error: 'SUPERSEDED', requestId };
       }
 
       const format = data.data.format || 'wav';
@@ -490,34 +501,42 @@ export class NeuralTTSProvider {
       const audio = new Audio(audioSrc);
       this.currentAudio = audio;
 
-      console.log(`[TTS] Playing authentic neural speech via ${data.data.provider || 'neural-tts'} (${language}, ${data.data.audioBase64.length} b64 chars)`);
+      console.log(`[TTS] [${requestId}] Playing authentic neural speech via ${data.data.model || data.data.provider || 'neural-tts'} (${language}, ${data.data.audioBase64.length} b64 chars)`);
 
       return new Promise((resolve) => {
         audio.onended = () => {
-          this.currentAudio = null;
+          if (this.currentAudio === audio) {
+            this.currentAudio = null;
+          }
           resolve({
             success: true,
             provider: 'neural-tts',
+            model: data.data?.model || 'neural-tts',
+            requestId,
             cached: data.data?.cached || false,
             diagnostics: data.data?.diagnostics || this.lastDiagnostics,
           });
         };
 
         audio.onerror = (err) => {
-          console.warn('[NeuralTTS Provider] Audio playback error, engaging emergency browser fallback:', err);
-          this.currentAudio = null;
-          this.fallback.speak(text, language, options).then(resolve);
+          console.warn(`[NeuralTTS Provider] [${requestId}] Audio playback error:`, err);
+          if (this.currentAudio === audio) {
+            this.currentAudio = null;
+          }
+          resolve({ success: false, error: 'PLAYBACK_ERROR', requestId });
         };
 
         audio.play().catch((playErr) => {
-          console.warn('[NeuralTTS Provider] Play error (autoplay policy or audio error), engaging emergency browser fallback:', playErr);
-          this.currentAudio = null;
-          this.fallback.speak(text, language, options).then(resolve);
+          console.warn(`[NeuralTTS Provider] [${requestId}] Audio play error:`, playErr);
+          if (this.currentAudio === audio) {
+            this.currentAudio = null;
+          }
+          resolve({ success: false, error: 'AUTOPLAY_OR_AUDIO_ERROR', requestId });
         });
       });
     } catch (err) {
-      console.info('[NeuralTTS Provider] Neural server speech unavailable, using emergency browser speech synthesis:', err.message);
-      return await this.fallback.speak(text, language, options);
+      console.warn(`[NeuralTTS Provider] [${requestId}] Neural server speech error: ${err.message}`);
+      return { success: false, error: 'TTS_RUNTIME_ERROR', message: err.message, requestId };
     }
   }
 

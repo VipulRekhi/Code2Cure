@@ -66,21 +66,20 @@ describe('MediKiosk Voice Pipeline Frontend Test Suite', () => {
       expect(ttsService.isSpeaking).toBe(false);
     });
 
-    it('falls back to BrowserTTSProvider seamlessly if neural network call fails', async () => {
+    it('does NOT fall back to robotic browser synthesis if neural network call fails (Section 24)', async () => {
       vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
 
-      const fallbackSpeak = vi.spyOn(ttsService.provider.fallback, 'speak').mockResolvedValueOnce({
-        success: true,
-        provider: 'browser-speech-synthesis',
-      });
+      const fallbackSpeak = vi.spyOn(ttsService.provider.fallback, 'speak');
 
       const res = await ttsService.speak({
         text: 'What brings you to the hospital today?',
         language: 'en',
       });
 
-      expect(fallbackSpeak).toHaveBeenCalled();
-      expect(res.success).toBe(true);
+      // Browser TTS fallback is disabled in production to eliminate robotic dual-voice playback
+      expect(fallbackSpeak).not.toHaveBeenCalled();
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('TTS_RUNTIME_ERROR');
     });
   });
 

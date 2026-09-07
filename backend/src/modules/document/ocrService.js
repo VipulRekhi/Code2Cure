@@ -17,8 +17,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const OCR_RUNTIME_SCRIPT = path.resolve(__dirname, '../../../../voice_runtime/ocr_runtime.py');
-const VOICE_RUNTIME_HOST = process.env.VOICE_RUNTIME_HOST || '127.0.0.1';
-const VOICE_RUNTIME_PORT = parseInt(process.env.VOICE_RUNTIME_PORT || '8001', 10);
+const OCR_HOST = process.env.OCR_HOST || process.env.VOICE_RUNTIME_HOST || '127.0.0.1';
+const OCR_PORT = parseInt(process.env.OCR_PORT || '8002', 10);
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python';
 
 export class OCRService {
@@ -128,7 +128,7 @@ export class OCRService {
   }
 
   /**
-   * Attempts HTTP POST to voice_runtime server on port 8001.
+   * Attempts HTTP POST to OCR server on port 8002.
    * If server is not responding, falls back to direct Python subprocess.
    */
   async _processWithHttpOrSubprocess(rawBuffer, fileName) {
@@ -141,7 +141,7 @@ export class OCRService {
   }
 
   /**
-   * Calls HTTP /ocr on the voice_runtime server.
+   * Calls HTTP /ocr on the OCR server.
    */
   _requestHttpOcr(rawBuffer, fileName) {
     return new Promise((resolve, reject) => {
@@ -152,15 +152,15 @@ export class OCRService {
       });
 
       const options = {
-        hostname: VOICE_RUNTIME_HOST,
-        port: VOICE_RUNTIME_PORT,
+        hostname: OCR_HOST,
+        port: OCR_PORT,
         path: '/ocr',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
         },
-        timeout: 60000,
+        timeout: parseInt(process.env.OCR_TIMEOUT_MS || '120000', 10),
       };
 
       const req = http.request(options, (res) => {

@@ -57,7 +57,8 @@ export const documentController = {
       // 3. Extract structured medical entities with zero-hallucination rules
       const extractedInfo = documentExtractionService.extract(
         ocrResult.ocrText,
-        documentType
+        documentType,
+        ocrResult.lines || []
       );
 
       // 4. Persist structured record in Supabase (PostgreSQL)

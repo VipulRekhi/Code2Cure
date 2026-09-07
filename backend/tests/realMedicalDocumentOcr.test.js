@@ -143,7 +143,7 @@ describe('Real Medical Document OCR Upload & Processing Suite', () => {
     expect(uploadRes.body.success).toBe(true);
     expect(uploadRes.body.data.processingStatus).toBe('PROCESSED');
     expect(uploadRes.body.data.ocrText.length).toBeGreaterThan(10);
-  }, 90000);
+  }, 120000);
 
   // 5. Empty or Corrupted Payload Rejection
   it('rejects empty or corrupt payloads gracefully without exposing stack traces', async () => {

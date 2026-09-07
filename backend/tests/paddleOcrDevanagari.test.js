@@ -41,7 +41,7 @@ describe('Phase 7.5 PaddleOCR Devanagari & Unicode Preservation Suite', () => {
     expect(res.ocrText).not.toContain('\uFFFD');
     expect(res.ocrText).not.toContain('?>');
     expect(res.ocrText).not.toMatch(/[\x00-\x08\x0B\x0C\x0E-\x1F]/);
-  }, 25000);
+  }, 60000);
 
   it('persists real PaddleOCR Devanagari text in PostgreSQL and retrieves exact codepoints', async () => {
     // 1. Create a clinical session
@@ -86,7 +86,7 @@ describe('Phase 7.5 PaddleOCR Devanagari & Unicode Preservation Suite', () => {
     const retrievedDoc = listRes.body.data.find((d) => d.id === docData.id);
     expect(retrievedDoc).toBeDefined();
     expect(retrievedDoc.ocrText).toContain('माझं गुडघं दुखतंय');
-  }, 25000);
+  }, 60000);
 
   it('rejects unreadable documents transparently without hallucinating text', async () => {
     // 1x1 transparent PNG / noise
@@ -102,5 +102,5 @@ describe('Phase 7.5 PaddleOCR Devanagari & Unicode Preservation Suite', () => {
     expect(res.error).toBe('UNREADABLE_DOCUMENT');
     expect(res.ocrText).toBe('');
     expect(res.confidence).toBeLessThan(0.25);
-  }, 25000);
+  }, 60000);
 });

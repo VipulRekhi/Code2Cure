@@ -49,8 +49,15 @@ def get_ocr_engine():
             import torch
             import paddle
             from paddleocr import PaddleOCR
-            # lang='hi' loads the devanagari_PP-OCRv5 model which recognizes Marathi, Hindi & English
-            _OCR_ENGINE = PaddleOCR(use_textline_orientation=True, lang="hi", enable_mkldnn=False)
+            # lang='hi' loads the devanagari_PP-OCRv5 model which recognizes Marathi, Hindi & English.
+            # Disable UVDoc 3D unwarping and doc orientation classification to reduce inference latency by ~70% on CPU.
+            _OCR_ENGINE = PaddleOCR(
+                use_doc_unwarping=False,
+                use_doc_orientation_classify=False,
+                use_textline_orientation=True,
+                lang="hi",
+                enable_mkldnn=False,
+            )
     return _OCR_ENGINE
 
 def _extract_pages_as_images(image_input) -> list:

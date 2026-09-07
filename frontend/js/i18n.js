@@ -77,6 +77,9 @@ export const translations = {
     yesCorrect: "Yes, that's correct",
     tryAgain: "Try again",
     orChooseBelow: "OR choose below:",
+    voiceUnavailable: "Voice service is temporarily unavailable.",
+    voiceUnavailableSub: "Please try again or select an option below.",
+    chooseManually: "Select on screen",
 
     // Common Complaints
     cChestPain: "Chest Discomfort / Pain",
@@ -240,6 +243,9 @@ export const translations = {
     yesCorrect: "हां, यह सही है",
     tryAgain: "फिर से बोलें",
     orChooseBelow: "या नीचे दिए गए विकल्पों में से चुनें:",
+    voiceUnavailable: "आवाज़ सेवा फ़िलहाल उपलब्ध नहीं है।",
+    voiceUnavailableSub: "कृपया पुनः प्रयास करें या नीचे दिए गए विकल्प चुनें।",
+    chooseManually: "स्क्रीन पर चुनें",
 
     // Common Complaints
     cChestPain: "सीने में दर्द या भारीपन",
@@ -404,6 +410,9 @@ export const translations = {
     yesCorrect: "होय, हे बरोबर आहे",
     tryAgain: "पुन्हा प्रयत्न करा",
     orChooseBelow: "किंवा खालील पर्यायांमधून निवडा:",
+    voiceUnavailable: "आवाज सेवा सध्या उपलब्ध नाही.",
+    voiceUnavailableSub: "कृपया पुन्हा प्रयत्न करा किंवा खालील पर्याय निवडा.",
+    chooseManually: "स्वतः निवडा",
 
     // Common Complaints
     cChestPain: "छातीत दुखणे किंवा जड वाटणे",
