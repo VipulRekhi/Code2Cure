@@ -16,8 +16,8 @@ export function renderVoiceButton({
 }) {
   const lang = appState.language;
 
-  // 1. Recognized State with Raw Transcript & Interpreted Understanding
-  if (status === 'RECOGNIZED' && transcript) {
+  // 1. Recognized/Success State with Raw Transcript & Interpreted Understanding
+  if ((status === 'RECOGNIZED' || status === 'SUCCESS') && transcript) {
     return `
       <div class="voice-confirmation-box" role="region" aria-label="Speech Confirmation">
         <div style="font-size: var(--font-size-xs); font-weight: 700; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.04em;">
@@ -51,6 +51,7 @@ export function renderVoiceButton({
   // 2. Interactive Voice States
   const isListening = status === 'LISTENING';
   const isProcessing = status === 'PROCESSING';
+  const isTranscribing = status === 'TRANSCRIBING';
   const isUnavailable = status === 'SERVICE_UNAVAILABLE' || status === 'ERROR';
 
   let statusLabel = t('speakAnswer', lang) || 'Tap to speak';
@@ -61,7 +62,10 @@ export function renderVoiceButton({
     statusSub = 'Tap the microphone again when done';
   } else if (isProcessing) {
     statusLabel = t('processingVoice', lang) || 'Understanding your speech...';
-    statusSub = 'Please wait a moment';
+    statusSub = 'Preparing audio...';
+  } else if (isTranscribing) {
+    statusLabel = t('transcribingVoice', lang) || 'Transcribing speech...';
+    statusSub = 'Contacting speech recognition service...';
   } else if (isUnavailable) {
     statusLabel = t('voiceUnavailable', lang) || 'Voice service temporarily unavailable.';
     statusSub = t('voiceUnavailableSub', lang) || 'Please select an option from the list.';
@@ -73,7 +77,7 @@ export function renderVoiceButton({
         id="btn-voice-mic"
         class="voice-mic-button ${isListening ? 'listening' : ''}"
         aria-label="${statusLabel}"
-        ${isProcessing ? 'disabled' : ''}
+        ${isProcessing || isTranscribing ? 'disabled' : ''}
       >
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>

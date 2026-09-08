@@ -5,3 +5,4 @@ export { ClinicalSessionState } from './clinicalState.js';
 export { QuestionSelector } from './questionSelector.js';
 export { QuestionEngine, createQuestionEngine } from './questionEngine.js';
 export { parseDemoVoiceResponse } from './demoParser.js';
+export { buildCanonicalClinicalSummary, generateVerbalSummary } from './clinicalSummaryBuilder.js';

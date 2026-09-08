@@ -4,6 +4,9 @@
  * and handles stale fact invalidation upon response revision.
  */
 
+import { buildCanonicalClinicalSummary } from './clinicalSummaryBuilder.js';
+import { getQuestionById } from './questionCatalog.js';
+
 export class ClinicalSessionState {
   constructor({ sessionId, patientId = null, language = 'mr', opdMode = 'GENERAL' }) {
     this.sessionId = sessionId;
@@ -18,6 +21,8 @@ export class ClinicalSessionState {
     this.questionsAlreadyAsked = []; // Array of asked questions { id, concept, attribute, text, source }
     this.currentQuestionId = null;
     this.primaryConcern = null;
+    this.summaryVersion = 1;
+    this.updatedAt = new Date().toISOString();
   }
 
   /**
@@ -109,14 +114,26 @@ export class ClinicalSessionState {
    * When an earlier answer changes, remove derived facts that are no longer valid.
    */
   invalidateStaleFacts(revisedQuestionId, newValue) {
-    // If pain location is revised to something other than chest, clear chest-specific radiation/sweating facts
-    if (revisedQuestionId === 'q.pain.location' && newValue !== 'chest') {
-      delete this.collectedFacts['symptom.pain.chest.radiation'];
-      delete this.collectedFacts['symptom.pain.chest.dyspnea'];
-      delete this.collectedFacts['symptom.pain.chest.sweating'];
-      this.completedQuestionIds.delete('q.pain.radiation');
-      this.completedQuestionIds.delete('q.pain.dyspnea');
-      this.completedQuestionIds.delete('q.pain.sweating');
+    if (revisedQuestionId === 'q.pain.location' || revisedQuestionId.includes('location')) {
+      const valStr = String(newValue || '').toLowerCase();
+      if (!valStr.includes('chest')) {
+        delete this.collectedFacts['symptom.pain.chest.location'];
+        delete this.collectedFacts['symptom.pain.chest.radiation'];
+        delete this.collectedFacts['symptom.pain.chest.dyspnea'];
+        delete this.collectedFacts['symptom.pain.chest.sweating'];
+        this.completedQuestionIds.delete('q.pain.radiation');
+        this.completedQuestionIds.delete('q.pain.dyspnea');
+        this.completedQuestionIds.delete('q.pain.sweating');
+      }
+      if (!valStr.includes('knee')) {
+        delete this.collectedFacts['symptom.pain.knee.location'];
+      }
+      if (!valStr.includes('shoulder')) {
+        delete this.collectedFacts['symptom.pain.shoulder.location'];
+      }
+      if (!valStr.includes('abdomen') && !valStr.includes('stomach')) {
+        delete this.collectedFacts['symptom.pain.abdominal.location'];
+      }
     }
   }
 
@@ -130,160 +147,10 @@ export class ClinicalSessionState {
   }
 
   /**
-   * Builds structured, validated clinical summary for review and persistence.
+   * Builds structured, validated canonical clinical summary for review and persistence.
    */
-  getClinicalSummary() {
-    // 1. Resolve Primary Concern (Section 15, 16, 44)
-    // Priority: explicitly assigned primaryConcern, or derived from first complaint fact, or null. NEVER default to CHEST_PAIN or pain!
-    let primaryConcernVal = this.primaryConcern;
-
-    if (!primaryConcernVal) {
-      if (this.collectedFacts['symptom.dyspnea.presence']?.status === 'PRESENT' || this.collectedFacts['symptom.breathing.presence']?.status === 'PRESENT') {
-        primaryConcernVal = 'breathing';
-      } else if (this.collectedFacts['symptom.diarrhea.presence']?.status === 'PRESENT') {
-        primaryConcernVal = 'diarrhea';
-      } else if (this.collectedFacts['symptom.pain.shoulder.location']?.value === 'shoulder' || this.collectedFacts['symptom.pain.shoulder.presence']?.status === 'PRESENT') {
-        primaryConcernVal = 'shoulder_pain';
-      } else if (this.collectedFacts['symptom.pain.chest.location']?.value === 'chest' || this.collectedFacts['symptom.pain.chest.presence']?.status === 'PRESENT') {
-        primaryConcernVal = 'chest_pain';
-      } else if (this.collectedFacts['symptom.pain.abdominal.location']?.value === 'abdomen' || this.collectedFacts['symptom.pain.abdominal.presence']?.status === 'PRESENT') {
-        primaryConcernVal = 'stomach';
-      } else if (this.collectedFacts['symptom.pain.knee.location']?.value === 'knee' || this.collectedFacts['symptom.pain.knee.presence']?.status === 'PRESENT') {
-        primaryConcernVal = 'knee_pain';
-      } else if (this.collectedFacts['symptom.pain.complaint_type']?.value) {
-        primaryConcernVal = this.collectedFacts['symptom.pain.complaint_type'].value;
-      } else {
-        const chiefComplaintResponse = this.responses.find((r) => r.questionId === 'q.chief_complaint');
-        if (chiefComplaintResponse?.normalizedValue) {
-          primaryConcernVal = chiefComplaintResponse.normalizedValue;
-        }
-      }
-    }
-
-    // 2. Resolve Duration (Dynamic per primary concern; supports range & vague objects)
-    let duration = null;
-    let durationFact =
-      this.collectedFacts['symptom.dyspnea.duration'] ||
-      this.collectedFacts['symptom.breathing.duration'] ||
-      this.collectedFacts['symptom.diarrhea.duration'] ||
-      this.collectedFacts['symptom.pain.knee.duration'] ||
-      this.collectedFacts['symptom.pain.shoulder.duration'] ||
-      this.collectedFacts['symptom.pain.chest.duration'] ||
-      this.collectedFacts['symptom.pain.abdominal.duration'] ||
-      this.collectedFacts['symptom.vomiting.duration'] ||
-      this.collectedFacts['symptom.fever.duration'] ||
-      this.collectedFacts['symptom.pain.duration'] ||
-      this.collectedFacts['symptom.cough.duration'] ||
-      this.collectedFacts['clinical.duration.duration'] ||
-      this.collectedFacts['duration.duration'];
-
-    if (!durationFact) {
-      durationFact = Object.values(this.collectedFacts).find((f) => f.attribute === 'duration');
-    }
-
-    if (durationFact) {
-      if (
-        durationFact.precision === 'vague' ||
-        durationFact.value === null ||
-        (typeof durationFact.value === 'object' && durationFact.value?.precision === 'vague')
-      ) {
-        duration = {
-          value: null,
-          raw: durationFact.raw || durationFact.value?.raw || 'vague',
-          precision: 'vague',
-        };
-      } else if (typeof durationFact.value === 'object' && durationFact.value !== null) {
-        if (durationFact.value.min !== undefined && durationFact.value.max !== undefined) {
-          duration = {
-            min: durationFact.value.min,
-            max: durationFact.value.max,
-            unit: durationFact.value.unit || 'days',
-          };
-        } else if (durationFact.value.amount !== undefined || durationFact.value.value !== undefined) {
-          duration = {
-            value: durationFact.value.amount ?? durationFact.value.value,
-            unit: durationFact.value.unit || durationFact.unit || 'days',
-          };
-        } else {
-          duration = durationFact.value;
-        }
-      } else if (typeof durationFact.value === 'number') {
-        duration = {
-          value: durationFact.value,
-          unit: durationFact.unit || 'days',
-        };
-      }
-    }
-
-    // 3. Resolve Severity (Null if not reported, never default to MODERATE)
-    let severity = null;
-    let severityFact =
-      this.collectedFacts['symptom.dyspnea.severity'] ||
-      this.collectedFacts['symptom.breathing.severity'] ||
-      this.collectedFacts['symptom.pain.severity'] ||
-      this.collectedFacts['symptom.pain.chest.severity'] ||
-      this.collectedFacts['symptom.pain.knee.severity'] ||
-      this.collectedFacts['symptom.pain.abdominal.severity'] ||
-      this.collectedFacts['clinical.severity.severity'];
-
-    if (!severityFact) {
-      severityFact = Object.values(this.collectedFacts).find((f) => f.attribute === 'severity');
-    }
-
-    if (severityFact?.value) {
-      const rawSev = String(severityFact.value).toUpperCase();
-      if (rawSev.includes('MILD') || rawSev.includes('कमी') || rawSev.includes('हल्का')) severity = 'MILD';
-      else if (rawSev.includes('MODERATE') || rawSev.includes('मध्यम')) severity = 'MODERATE';
-      else if (rawSev.includes('SEVERE') || rawSev.includes('तीव्र') || rawSev.includes('तेज')) severity = 'SEVERE';
-      else if (rawSev.includes('UNBEARABLE') || rawSev.includes('असह्य')) severity = 'UNBEARABLE';
-      else severity = rawSev;
-    }
-
-    // 4. Resolve Location (Null if not reported, never default to abdomen)
-    let location = null;
-    const locationFact =
-      this.collectedFacts['symptom.headache.location'] ||
-      this.collectedFacts['symptom.pain.shoulder.location'] ||
-      this.collectedFacts['symptom.pain.knee.location'] ||
-      this.collectedFacts['symptom.pain.chest.location'] ||
-      this.collectedFacts['symptom.pain.abdominal.location'] ||
-      this.collectedFacts['symptom.pain.location'];
-    if (locationFact?.value && locationFact.value !== 'unknown') {
-      location = locationFact.value;
-    }
-
-    // 5. Gather all structured symptoms
-    const symptoms = [];
-    for (const [key, fact] of Object.entries(this.collectedFacts)) {
-      if (fact.concept?.startsWith('symptom.') && fact.status === 'PRESENT') {
-        symptoms.push({
-          concept: fact.concept,
-          attribute: fact.attribute,
-          value: fact.value,
-          status: fact.status,
-          source: fact.source,
-          recordedAt: fact.recordedAt,
-        });
-      }
-    }
-
-    return {
-      sessionId: this.sessionId,
-      patientId: this.patientId,
-      language: this.language,
-      opdMode: this.opdMode,
-      primaryConcern: primaryConcernVal,
-      duration,
-      severity,
-      location,
-      symptoms,
-      factsCount: Object.keys(this.collectedFacts).length,
-      facts: this.collectedFacts,
-      completedQuestions: Array.from(this.completedQuestionIds),
-      questionsAlreadyAsked: this.questionsAlreadyAsked,
-      responsesCount: this.responses.length,
-      examinationHistory: this.getExaminationHistory(this.language),
-    };
+  getClinicalSummary(documents = [], options = {}) {
+    return buildCanonicalClinicalSummary(this, documents, options);
   }
 
   /**
@@ -363,9 +230,9 @@ export class ClinicalSessionState {
    * Updates an existing response upon patient correction (Phase 7 Section 18)
    */
   updateResponse({ questionId, newResponse, normalizedValue, inputMethod = 'TOUCH', language = 'mr' }) {
-    const asked = this.questionsAlreadyAsked.find((q) => q.id === questionId);
-    const concept = asked?.concept || 'clinical';
-    const attribute = asked?.attribute || 'value';
+    const asked = this.questionsAlreadyAsked.find((q) => q.id === questionId) || getQuestionById(questionId);
+    const concept = asked?.concept || (questionId.includes('duration') ? 'symptom.pain' : (questionId.includes('location') ? 'symptom.pain' : 'clinical'));
+    const attribute = asked?.attribute || (questionId.includes('duration') ? 'duration' : (questionId.includes('location') ? 'location' : 'value'));
 
     let status = 'PRESENT';
     const normStr = String(normalizedValue || '').toUpperCase();
@@ -420,7 +287,43 @@ export class ClinicalSessionState {
       recordedAt: new Date().toISOString(),
     };
 
+    if (questionId.includes('location') || questionId === 'q.pain.location') {
+      const locVal = String(updatedRecord.normalizedValue || '').toLowerCase();
+      this.collectedFacts['symptom.pain.location'] = {
+        concept: 'symptom.pain',
+        attribute: 'location',
+        value: updatedRecord.normalizedValue,
+        status,
+        source: updatedRecord.source,
+        recordedAt: new Date().toISOString(),
+      };
+      if (locVal.includes('knee')) {
+        this.collectedFacts['symptom.pain.knee.location'] = {
+          concept: 'symptom.pain.knee',
+          attribute: 'location',
+          value: updatedRecord.normalizedValue,
+          status,
+          source: updatedRecord.source,
+          recordedAt: new Date().toISOString(),
+        };
+      }
+    }
+
+    if (attribute === 'duration' || questionId.includes('duration')) {
+      for (const [k, f] of Object.entries(this.collectedFacts)) {
+        if (f.attribute === 'duration' || k.endsWith('.duration')) {
+          f.value = updatedRecord.normalizedValue;
+          f.status = status;
+          f.source = updatedRecord.source;
+          f.recordedAt = new Date().toISOString();
+        }
+      }
+    }
+
     this.invalidateStaleFacts(questionId, updatedRecord.normalizedValue);
+
+    this.summaryVersion = (this.summaryVersion || 1) + 1;
+    this.updatedAt = new Date().toISOString();
 
     return updatedRecord;
   }

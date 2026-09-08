@@ -140,7 +140,16 @@ export function renderChiefComplaintScreen() {
             return;
           }
 
-          if (status === 'RECOGNIZED' && transcript) {
+          if (status === 'TRANSCRIBING') {
+            if (micBtn) {
+              micBtn.classList.remove('listening');
+              micBtn.setAttribute('disabled', 'true');
+            }
+            if (statusText) statusText.textContent = t('transcribingVoice', lang) || 'Transcribing your speech...';
+            return;
+          }
+
+          if ((status === 'RECOGNIZED' || status === 'SUCCESS') && transcript) {
             appState.voice.transcript = transcript;
             appState.complaint.textPatientSpoken = transcript;
 

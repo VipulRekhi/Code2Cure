@@ -563,13 +563,13 @@ export const clinicalController = {
       }
 
       const engine = getOrCreateEngine(dbSession);
-      const summary = engine.sessionState.getClinicalSummary();
 
       const docs = await prisma.medicalDocument.findMany({
         where: { sessionId: id },
         orderBy: { createdAt: 'asc' },
       });
-      summary.documents = docs;
+
+      const summary = engine.sessionState.getClinicalSummary(docs, { language: dbSession.language });
 
       res.status(200).json({
         success: true,
@@ -733,14 +733,13 @@ export const clinicalController = {
           opdMode: dbSession.opdMode,
         },
         primaryComplaint: summary.primaryConcern,
-        clinicalSummary: {
-          primaryConcern: summary.primaryConcern,
-          duration: summary.duration,
-          severity: summary.severity,
-          location: summary.location,
-          symptoms: summary.symptoms,
-          factsCount: summary.factsCount,
-        },
+        clinicalSummary: summary,
+        canonicalSummary: summary,
+        verbalSummary: summary.verbalSummary,
+        medications: summary.medications,
+        allergies: summary.allergies,
+        uncertainItems: summary.uncertainItems,
+        verification: summary.verification,
         allDynamicQuestions: engine.sessionState.questionsAlreadyAsked,
         allPatientAnswers: engine.sessionState.responses,
         examinationHistory,

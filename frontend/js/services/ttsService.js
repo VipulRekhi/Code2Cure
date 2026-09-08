@@ -439,6 +439,32 @@ export class BrowserTTSProvider {
   }
 }
 
+// Global browser audio unlock for kiosk environments
+let isAudioUnlocked = false;
+export function unlockAudioContext() {
+  if (isAudioUnlocked || typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      ctx.resume().then(() => {
+        isAudioUnlocked = true;
+        ctx.close().catch(() => {});
+      }).catch(() => {});
+    }
+    const dummy = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+    dummy.play().then(() => {
+      isAudioUnlocked = true;
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+if (typeof window !== 'undefined') {
+  ['click', 'touchstart'].forEach((evt) => {
+    window.addEventListener(evt, unlockAudioContext, { once: true, passive: true });
+  });
+}
+
 /**
  * Multilingual Neural TTS Provider
  * Fetches high-quality 24kHz natural Indian language speech from the backend neural TTS service
@@ -472,7 +498,12 @@ export class NeuralTTSProvider {
       });
 
       if (!res.ok) {
-        throw new Error(`TTS API returned status ${res.status}`);
+        return {
+          success: false,
+          error: 'TTS_RUNTIME_UNAVAILABLE',
+          message: `TTS service unavailable (HTTP ${res.status})`,
+          requestId,
+        };
       }
 
       const data = await res.json();
@@ -484,7 +515,8 @@ export class NeuralTTSProvider {
         console.warn(`[NeuralTTS Provider] Speech synthesis unavailable (${data.error || 'NO_AUDIO'}). Request ID: ${requestId}`);
         return {
           success: false,
-          error: data.error || 'TTS_SYNTHESIS_FAILED',
+          error: data.error || 'TTS_FAILED',
+          message: data.message || 'Speech synthesis failed',
           requestId,
         };
       }
@@ -523,7 +555,7 @@ export class NeuralTTSProvider {
           if (this.currentAudio === audio) {
             this.currentAudio = null;
           }
-          resolve({ success: false, error: 'PLAYBACK_ERROR', requestId });
+          resolve({ success: false, error: 'AUDIO_PLAYBACK_FAILED', requestId });
         };
 
         audio.play().catch((playErr) => {
@@ -531,12 +563,12 @@ export class NeuralTTSProvider {
           if (this.currentAudio === audio) {
             this.currentAudio = null;
           }
-          resolve({ success: false, error: 'AUTOPLAY_OR_AUDIO_ERROR', requestId });
+          resolve({ success: false, error: 'AUDIO_PLAYBACK_FAILED', message: playErr.message, requestId });
         });
       });
     } catch (err) {
       console.warn(`[NeuralTTS Provider] [${requestId}] Neural server speech error: ${err.message}`);
-      return { success: false, error: 'TTS_RUNTIME_ERROR', message: err.message, requestId };
+      return { success: false, error: 'TTS_RUNTIME_UNAVAILABLE', message: err.message, requestId };
     }
   }
 
@@ -624,6 +656,32 @@ class TTSService {
     }
     this.isSpeaking = false;
     this._notifyListeners(false);
+  }
+
+  /**
+   * Unlocks the browser audio context on initial user interaction (touch/click).
+   * Prevents autoplay blocking on iOS Safari, Chrome, and kiosk touchscreens.
+   */
+  async unlockAudioContext() {
+    try {
+      const AudioContextClass = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
+      if (!AudioContextClass) return true;
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioContextClass();
+      }
+      if (this.audioCtx.state === 'suspended') {
+        await this.audioCtx.resume();
+      }
+      const buffer = this.audioCtx.createBuffer(1, 1, 22050);
+      const source = this.audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.audioCtx.destination);
+      source.start(0);
+      return true;
+    } catch (e) {
+      console.warn('[TTS] unlockAudioContext warning:', e);
+      return false;
+    }
   }
 
   getVoiceStatus(language = 'mr') {

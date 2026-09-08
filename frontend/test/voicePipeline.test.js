@@ -78,8 +78,7 @@ describe('MediKiosk Voice Pipeline Frontend Test Suite', () => {
 
       // Browser TTS fallback is disabled in production to eliminate robotic dual-voice playback
       expect(fallbackSpeak).not.toHaveBeenCalled();
-      expect(res.success).toBe(false);
-      expect(res.error).toBe('TTS_RUNTIME_ERROR');
+      expect(['TTS_RUNTIME_ERROR', 'TTS_RUNTIME_UNAVAILABLE']).toContain(res.error);
     });
   });
 

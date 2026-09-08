@@ -22,11 +22,12 @@ class SpeechService {
    * Never falls back to browser speech recognition.
    */
   async startListening(lang = 'mr', onStateChange, context = {}) {
+    const notify = typeof onStateChange === 'function' ? onStateChange : () => {};
     const requestId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `req_${Date.now()}`;
     this.activeRequestId = requestId;
     this.status = 'LISTENING';
 
-    onStateChange({
+    notify({
       status: this.status,
       requestId,
       transcript: null,
@@ -35,7 +36,7 @@ class SpeechService {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       console.warn('[Speech] Microphone capture hardware or MediaRecorder API unavailable.');
       this.status = 'SERVICE_UNAVAILABLE';
-      onStateChange({
+      notify({
         status: 'SERVICE_UNAVAILABLE',
         error: 'NO_SPEECH_HARDWARE',
         message: 'Voice service is temporarily unavailable. Please try again or use the buttons below.',
@@ -89,130 +90,8 @@ class SpeechService {
           return;
         }
 
-        this.status = 'PROCESSING';
-        onStateChange({ status: this.status, requestId });
-
         const blob = new Blob(this.audioChunks, { type: mimeType });
-        const reader = new FileReader();
-
-        reader.onloadend = async () => {
-          if (this.activeRequestId !== requestId) {
-            console.warn('[Speech] Discarding base64 conversion for stale request:', requestId);
-            return;
-          }
-
-          const base64Audio = reader.result ? reader.result.split(',')[1] || '' : '';
-
-          // Diagnostic logging for development & troubleshooting (Section 8)
-          console.info('[Speech Diagnostic]', {
-            requestId,
-            mimeType,
-            sizeBytes: blob.size,
-            durationMs,
-            deviceId: deviceSettings.deviceId || 'default',
-            autoGainControl: deviceSettings.autoGainControl ?? true,
-            hasUsableAudio: blob.size > 500,
-          });
-
-          if (!base64Audio || blob.size < 200) {
-            this.status = 'IDLE';
-            onStateChange({
-              status: 'IDLE',
-              error: 'EMPTY_AUDIO',
-              message: 'No speech detected. Please speak clearly at normal volume or select an option below.',
-              transcript: null,
-              requestId,
-            });
-            return;
-          }
-
-          try {
-            // 8-second realistic timeout for backend ASR inference
-            const asrPromise = api.transcribeAudio({
-              audioBase64: base64Audio,
-              language: lang,
-              questionId: context.questionId || null,
-              sessionId: context.sessionId || null,
-              requestId,
-            });
-
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('ASR_CLIENT_TIMEOUT')), 8000)
-            );
-
-            const asrStartTime = Date.now();
-            let res;
-            try {
-              res = await Promise.race([asrPromise, timeoutPromise]);
-            } catch (raceErr) {
-              console.warn('[Speech] ASR network timeout or failure:', raceErr.message);
-              res = { success: false, error: raceErr.message };
-            }
-
-            const asrLatency = Date.now() - asrStartTime;
-            console.info('[Speech ASR Latency]', `${asrLatency}ms`, 'Success:', res?.success);
-
-            if (this.activeRequestId !== requestId) {
-              console.warn('[Speech] Discarding ASR result for stale request:', requestId);
-              return;
-            }
-
-            const resolvedTranscript = res.success && res.data?.transcript ? res.data.transcript.trim() : '';
-
-            if (resolvedTranscript) {
-              this.status = 'RECOGNIZED';
-              onStateChange({
-                status: this.status,
-                transcript: resolvedTranscript,
-                confidence: res.data?.confidence || 0.95,
-                provider: res.data?.provider || 'indicconformer-runtime',
-                latency: asrLatency,
-                requestId,
-              });
-            } else {
-              const errorCode = res.error || 'UNRECOGNIZED';
-              const isOffline =
-                errorCode === 'ASR_SERVICE_OFFLINE' ||
-                errorCode === 'ASR_CLIENT_TIMEOUT' ||
-                errorCode === 'ASR_TIMEOUT' ||
-                errorCode === 'ASR_RUNTIME_ERROR';
-
-              if (isOffline) {
-                console.warn('[Speech] IndicConformer runtime offline or unreachable:', errorCode);
-                this.status = 'SERVICE_UNAVAILABLE';
-                onStateChange({
-                  status: 'SERVICE_UNAVAILABLE',
-                  error: errorCode,
-                  message: 'Voice service is temporarily unavailable. Please try again or use the buttons below.',
-                  transcript: null,
-                  requestId,
-                });
-              } else {
-                console.warn('[Speech] ASR unrecognized:', errorCode);
-                this.status = 'ERROR';
-                onStateChange({
-                  status: 'ERROR',
-                  error: errorCode,
-                  message: res.message || 'Speech not recognized. Please tap to speak again or choose below.',
-                  transcript: null,
-                  requestId,
-                });
-              }
-            }
-          } catch (err) {
-            console.warn('[Speech] ASR communication error:', err.message);
-            this.status = 'SERVICE_UNAVAILABLE';
-            onStateChange({
-              status: 'SERVICE_UNAVAILABLE',
-              error: 'SERVICE_UNAVAILABLE',
-              message: 'Voice service is temporarily unavailable. Please try again or use the buttons below.',
-              transcript: null,
-              requestId,
-            });
-          }
-        };
-
-        reader.readAsDataURL(blob);
+        await this.processAudioBlob(blob, notify, { ...context, lang, requestId, durationMs, deviceSettings });
       };
 
       // Collect audio chunks every 250ms for reliable streaming buffer
@@ -227,15 +106,182 @@ class SpeechService {
 
     } catch (err) {
       console.warn('[Speech] getUserMedia failed:', err);
-      this.status = 'SERVICE_UNAVAILABLE';
-      onStateChange({
-        status: 'SERVICE_UNAVAILABLE',
-        error: 'MIC_PERMISSION_OR_DEVICE_ERROR',
-        message: 'Voice service is temporarily unavailable. Please try again or use the buttons below.',
+      const isPermissionDenied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
+      const errorCode = isPermissionDenied ? 'MIC_PERMISSION_DENIED' : 'NO_AUDIO_PROVIDED';
+      this.status = 'ERROR';
+      notify({
+        status: 'ERROR',
+        error: errorCode,
+        message: isPermissionDenied
+          ? 'Microphone permission was denied. Please allow microphone access or select an option below.'
+          : 'Could not access microphone hardware. Please select an option below.',
         transcript: null,
         requestId,
       });
     }
+  }
+
+  /**
+   * Processes a captured audio Blob, converts to base64, runs diagnostics, and invokes ASR
+   */
+  async processAudioBlob(blob, onStateChange, context = {}) {
+    const notify = typeof onStateChange === 'function' ? onStateChange : () => {};
+    const requestId = context.requestId || this.activeRequestId || `req_${Date.now()}`;
+    const lang = context.lang || 'mr';
+    const durationMs = context.durationMs || 0;
+    const deviceSettings = context.deviceSettings || {};
+
+    this.status = 'PROCESSING';
+    this.lastTranscript = null;
+    this.lastError = null;
+    notify({ status: this.status, requestId });
+
+    if (!blob || blob.size === 0) {
+      this.status = 'ERROR';
+      this.lastTranscript = null;
+      this.lastError = { code: 'EMPTY_AUDIO', message: 'No speech detected.' };
+      notify({
+        status: 'ERROR',
+        error: 'EMPTY_AUDIO',
+        message: 'No speech detected. Please speak clearly at normal volume or select an option below.',
+        transcript: null,
+        requestId,
+      });
+      return;
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.onloadend = async () => {
+        if (this.activeRequestId && this.activeRequestId !== requestId) {
+          console.warn('[Speech] Discarding base64 conversion for stale request:', requestId);
+          resolve();
+          return;
+        }
+
+        const base64Audio = reader.result ? reader.result.split(',')[1] || '' : '';
+
+        // Diagnostic logging for development & troubleshooting (Section 8)
+        console.info('[Speech Diagnostic]', {
+          requestId,
+          mimeType: blob.type || 'audio/webm',
+          sizeBytes: blob.size,
+          durationMs,
+          deviceId: deviceSettings.deviceId || 'default',
+          autoGainControl: deviceSettings.autoGainControl ?? true,
+          hasUsableAudio: blob.size > 200,
+        });
+
+        if (!base64Audio || blob.size < 200) {
+          this.status = 'ERROR';
+          this.lastTranscript = null;
+          this.lastError = { code: 'EMPTY_AUDIO', message: 'No speech detected.' };
+          notify({
+            status: 'ERROR',
+            error: 'EMPTY_AUDIO',
+            message: 'No speech detected. Please speak clearly at normal volume or select an option below.',
+            transcript: null,
+            requestId,
+          });
+          resolve();
+          return;
+        }
+
+        try {
+          // Transition to TRANSCRIBING while waiting for backend ASR response (Phase 8.1)
+          this.status = 'TRANSCRIBING';
+          notify({ status: this.status, requestId });
+
+          // 8-second realistic timeout for backend ASR inference
+          const asrPromise = api.transcribeAudio({
+            audioBase64: base64Audio,
+            language: lang,
+            questionId: context.questionId || null,
+            sessionId: context.sessionId || null,
+            requestId,
+          });
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('ASR_TIMEOUT')), 8000)
+          );
+
+          const asrStartTime = Date.now();
+          let res;
+          try {
+            res = await Promise.race([asrPromise, timeoutPromise]);
+          } catch (raceErr) {
+            console.warn('[Speech] ASR network timeout or failure:', raceErr.message);
+            const isOffline = raceErr.message?.includes('offline') || raceErr.message?.includes('refused') || raceErr.message?.includes('network');
+            res = {
+              success: false,
+              error: raceErr.message === 'ASR_TIMEOUT' ? 'ASR_TIMEOUT' : (isOffline ? 'ASR_RUNTIME_UNAVAILABLE' : 'ASR_FAILED'),
+            };
+          }
+
+          const asrLatency = Date.now() - asrStartTime;
+          console.info('[Speech ASR Latency]', `${asrLatency}ms`, 'Success:', res?.success);
+
+          if (this.activeRequestId && this.activeRequestId !== requestId) {
+            console.warn('[Speech] Discarding ASR result for stale request:', requestId);
+            resolve();
+            return;
+          }
+
+          const resolvedTranscript = res.success && res.data?.transcript ? res.data.transcript.trim() : '';
+
+          if (resolvedTranscript) {
+            this.status = 'SUCCESS';
+            this.lastTranscript = resolvedTranscript;
+            notify({
+              status: 'SUCCESS',
+              transcript: resolvedTranscript,
+              confidence: res.data?.confidence || 0.95,
+              provider: res.data?.provider || 'indicconformer-runtime',
+              latency: asrLatency,
+              requestId,
+            });
+          } else {
+            const rawError = res.error || 'ASR_FAILED';
+            let errorCode = 'ASR_FAILED';
+            if (rawError === 'ASR_SERVICE_OFFLINE' || rawError === 'ECONNREFUSED' || rawError === 'ASR_RUNTIME_UNAVAILABLE') {
+              errorCode = 'ASR_RUNTIME_UNAVAILABLE';
+            } else if (rawError === 'ASR_TIMEOUT' || rawError === 'ASR_CLIENT_TIMEOUT') {
+              errorCode = 'ASR_TIMEOUT';
+            } else if (rawError === 'EMPTY_AUDIO') {
+              errorCode = 'EMPTY_AUDIO';
+            } else if (rawError === 'NO_AUDIO_PROVIDED') {
+              errorCode = 'NO_AUDIO_PROVIDED';
+            }
+
+            console.warn('[Speech] ASR failure:', errorCode);
+            this.status = 'ERROR';
+            this.lastError = { code: errorCode, message: res.message };
+            notify({
+              status: 'ERROR',
+              error: errorCode,
+              message: res.message || 'Speech not recognized. Please tap to speak again or choose below.',
+              transcript: null,
+              requestId,
+            });
+          }
+        } catch (err) {
+          console.warn('[Speech] ASR communication error:', err.message);
+          this.status = 'ERROR';
+          this.lastError = { code: 'ASR_RUNTIME_UNAVAILABLE', message: err.message };
+          notify({
+            status: 'ERROR',
+            error: 'ASR_RUNTIME_UNAVAILABLE',
+            message: 'Voice service is temporarily unavailable. Please try again or use the buttons below.',
+            transcript: null,
+            requestId,
+          });
+        }
+        resolve();
+      };
+
+      reader.readAsDataURL(blob);
+    });
   }
 
   isListening() {
