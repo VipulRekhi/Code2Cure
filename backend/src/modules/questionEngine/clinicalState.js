@@ -88,6 +88,20 @@ export class ClinicalSessionState {
 
     this.completedQuestionIds.add(question.id);
 
+    if (question && question.id) {
+      const alreadyAsked = this.questionsAlreadyAsked.find((q) => q.id === question.id);
+      if (!alreadyAsked) {
+        this.questionsAlreadyAsked.push({
+          id: question.id,
+          concept: question.concept,
+          attribute: question.attribute,
+          text: question.text || (question.textByLanguage ? question.textByLanguage[language] || question.textByLanguage.en : question.id),
+          options: question.options || [],
+          timestamp: responseRecord.timestamp,
+        });
+      }
+    }
+
     // 3. Populate structured fact in language-neutral state (Section 23, 27)
     const factKey = `${question.concept}.${question.attribute}`;
     this.collectedFacts[factKey] = {
@@ -220,6 +234,37 @@ export class ClinicalSessionState {
         inputMethod: resp.inputMethod || 'TOUCH',
         options: asked.options || [],
         timestamp: resp.timestamp || asked.timestamp,
+      });
+    }
+
+    // 3. Any additional answered responses recorded directly
+    for (const resp of this.responses) {
+      if (resp.questionId === 'q.chief_complaint' || history.some((h) => h.questionId === resp.questionId)) continue;
+      const q = getQuestionById(resp.questionId) || { id: resp.questionId, concept: 'clinical', attribute: resp.questionId.replace(/^q\./, '') };
+      const rawAnswer = resp.rawResponse;
+      const normVal = resp.normalizedValue;
+      let interpretation = normVal !== null && normVal !== undefined ? normVal : rawAnswer;
+      if (resp.status === 'UNKNOWN' || normVal === 'unknown') {
+        interpretation = lang === 'mr' ? 'माहित नाही' : lang === 'hi' ? 'पता नहीं' : "Don't know";
+      } else if (resp.status === 'ABSENT' || normVal === false || normVal === 'no') {
+        interpretation = lang === 'mr' ? 'नाही' : lang === 'hi' ? 'नहीं' : 'No';
+      } else if (resp.status === 'PRESENT' && (normVal === true || normVal === 'yes')) {
+        interpretation = lang === 'mr' ? 'हो' : lang === 'hi' ? 'हाँ' : 'Yes';
+      }
+      history.push({
+        questionId: resp.questionId,
+        concept: q.concept,
+        attribute: q.attribute,
+        questionText: q.text || (q.textByLanguage ? q.textByLanguage[lang] || q.textByLanguage.en : resp.questionId),
+        patientAnswerRaw: typeof rawAnswer === 'object' ? JSON.stringify(rawAnswer) : String(rawAnswer ?? ''),
+        originalResponse: typeof rawAnswer === 'object' ? JSON.stringify(rawAnswer) : String(rawAnswer ?? ''),
+        originalTranscript: resp.inputMethod === 'VOICE' && typeof rawAnswer === 'string' ? rawAnswer : null,
+        normalizedValue: normVal !== undefined ? normVal : rawAnswer,
+        normalizedInterpretation: typeof interpretation === 'object' ? JSON.stringify(interpretation) : String(interpretation ?? ''),
+        status: resp.status || 'PRESENT',
+        inputMethod: resp.inputMethod || 'TOUCH',
+        options: q.options || [],
+        timestamp: resp.timestamp,
       });
     }
 

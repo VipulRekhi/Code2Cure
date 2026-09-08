@@ -315,6 +315,332 @@ export const QUESTION_CATALOG = [
       { value: 'unknown', labels: { en: 'Not sure / Prefer not to say', hi: 'पक्का नहीं पता', mr: 'माहित नाही' }, icon: '❓' },
     ],
   },
+
+  // ----------------------------------------------------
+  // AYUSH HISTORY MODE: DASHAVIDHA PARIKSHA (Phase 9)
+  // ----------------------------------------------------
+  {
+    id: 'q.ayush.prakriti',
+    concept: 'ayush.dashavidha',
+    attribute: 'prakriti',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'Which of these best describes your natural body tendencies from youth?',
+      hi: 'बचपन या सामान्य दिनों में आपकी स्वाभाविक शारीरिक प्रवृत्ति कैसी रही है?',
+      mr: 'लहानपणापासून किंवा सामान्यतः तुमची नैसर्गिक शारीरिक प्रवृत्ती कशी राहिलेली आहे?',
+    },
+    helpText: {
+      en: 'Select your general natural constitution tendencies (Prakriti assessment).',
+      hi: 'अपनी स्वाभाविक शारीरिक बनावट व प्रवृत्ति का चयन करें।',
+      mr: 'तुमच्या मूळ शारीरिक प्रवृत्तीनुसार योग्य पर्याय निवडा.',
+    },
+    options: [
+      { value: 'vata_dominant', labels: { en: 'Lean build, dry skin, sensitive to cold', hi: 'पतला शरीर, रूखी त्वचा, ठंड बर्दाश्त न होना', mr: 'बारीक अंगकाठी, कोरडी त्वचा, थंडी न सहन होणे' }, icon: '💨' },
+      { value: 'pitta_dominant', labels: { en: 'Medium build, warm body, sensitive to heat & spicy food', hi: 'मध्यम शरीर, गर्म शरीर, गर्मी व तीखा न सुहाना', mr: 'मध्यम अंगकाठी, गरम प्रकृती, उष्णता व तिखट न सोसणे' }, icon: '🔥' },
+      { value: 'kapha_dominant', labels: { en: 'Broad sturdy build, calm temperament, slow digestion', hi: 'मजबूत चौड़ा शरीर, शांत स्वभाव, सुस्त पाचन', mr: 'भक्कम अंगकाठी, शांत स्वभाव, पचन संथ असणे' }, icon: '🌊' },
+      { value: 'mixed', labels: { en: 'Combination of above tendencies', hi: 'ऊपर दी गई प्रवृत्तियों का मिश्रण', mr: 'वरील लक्षणांचे मिश्रण' }, icon: '⚖️' },
+      { value: 'unknown', labels: { en: 'Not sure / To be assessed by doctor', hi: 'पक्का नहीं पता / डॉक्टर द्वारा जांच', mr: 'नक्की सांगता येत नाही / डॉक्टरांनी तपासावे' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.vikriti',
+    concept: 'ayush.dashavidha',
+    attribute: 'vikriti',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'What kind of bodily disturbance or aggravation do you currently feel most?',
+      hi: 'वर्तमान में आपको किस तरह की परेशानी या शारीरिक असंतुलन सबसे ज्यादा महसूस होता है?',
+      mr: 'सध्या तुम्हाला शरीरात कोणत्या प्रकारचा त्रास किंवा असंतुलन सर्वात जास्त जाणवतो?',
+    },
+    options: [
+      { value: 'dryness_pain_stiffness', labels: { en: 'Joint stiffness, dryness, body aches', hi: 'जोड़ों में अकड़न, रूखापन, शरीर में दर्द', mr: 'सांधेदुखी, ताठरपणा, अंगात कोरडेपणा' }, icon: '🦴' },
+      { value: 'burning_heat_acidity', labels: { en: 'Burning sensation, acidity, excess body heat', hi: 'जलन, एसिडिटी/खट्टी डकारें, शरीर में ज्यादा गर्मी', mr: 'जळजळ, पित्त/आंबट ढेकर, अंग गरम पडणे' }, icon: '🔥' },
+      { value: 'heaviness_lethargy_mucus', labels: { en: 'Heaviness, sluggishness, congestion/cold', hi: 'भारीपन, सुस्ती, कफ या जकड़न', mr: 'जडपणा, आळस, छातीत कफ किंवा जड वाटणे' }, icon: '💧' },
+      { value: 'none_balanced', labels: { en: 'None of these / Chief complaint only', hi: 'इनमें से कोई नहीं / केवल मुख्य तकलीफ', mr: 'यापैकी काही नाही / केवळ मुख्य त्रास' }, icon: '✨' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.sara',
+    concept: 'ayush.dashavidha',
+    attribute: 'sara',
+    inputType: 'single-choice',
+    required: false,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How would you describe your overall physical strength and vitality (Sara)?',
+      hi: 'आपकी सामान्य शारीरिक शक्ति और अंदरूनी ऊर्जा (सार) कैसी है?',
+      mr: 'तुमची सर्वसाधारण शारीरिक ताकद आणि उत्साह (सार) कसा आहे?',
+    },
+    options: [
+      { value: 'pravara', labels: { en: 'High vitality & strong resilience (Pravara)', hi: 'उत्कृष्ट शक्ति और अच्छी ऊर्जा (प्रवर)', mr: 'उत्तम ताकद आणि भरपूर ऊर्जा (प्रवर)' }, icon: '💪' },
+      { value: 'madhyama', labels: { en: 'Moderate stamina and strength (Madhyama)', hi: 'मध्यम शक्ति और ऊर्जा (मध्यम)', mr: 'मध्यम ताकद आणि सहनशक्ती (मध्यम)' }, icon: '🚶' },
+      { value: 'avara', labels: { en: 'Low energy, fatigues very quickly (Avara)', hi: 'कमजोरी, बहुत जल्दी थकान होना (अवर)', mr: 'कमी ताकद, खूप लवकर थकवा येणे (अवर)' }, icon: '🛋️' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.samhanana',
+    concept: 'ayush.dashavidha',
+    attribute: 'samhanana',
+    inputType: 'single-choice',
+    required: false,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How is your body build and firmness of joints and muscles (Samhanana)?',
+      hi: 'आपके शरीर की बनावट और मांसपेशियों/जोड़ों की दृढ़ता (संहनन) कैसी है?',
+      mr: 'तुमच्या शरीराची बांधणी आणि सांधे-स्नायूंचा भक्कमपणा (संहनन) कसा आहे?',
+    },
+    options: [
+      { value: 'su_samhata', labels: { en: 'Compact, well-knit & symmetrical frame', hi: 'सुगठित, मजबूत और सुडौल शरीर (सुसंहत)', mr: 'सुदृढ, भरदार आणि प्रमाणबद्ध शरीर (सुसंहत)' }, icon: '🛡️' },
+      { value: 'madhyama', labels: { en: 'Moderate muscular build', hi: 'सामान्य व मध्यम बनावट (मध्यम)', mr: 'सर्वसामान्य मध्यम बांधा (मध्यम)' }, icon: '🧍' },
+      { value: 'heena_samhata', labels: { en: 'Loose, slender or delicate joint structure', hi: 'ढीला, दुबला या कमजोर जोड़ (हीन संहत)', mr: 'बारीक, सैल किंवा अशक्त सांधे (हीन संहत)' }, icon: '🌱' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.pramana',
+    concept: 'ayush.dashavidha',
+    attribute: 'pramana',
+    inputType: 'single-choice',
+    required: false,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How are your body height and weight proportions (Pramana)?',
+      hi: 'आपकी कद-काठी और वजन का अनुपात (प्रमाण) कैसा है?',
+      mr: 'तुमची उंची आणि वजनाचे प्रमाण (प्रमाण) कसे आहे?',
+    },
+    options: [
+      { value: 'pramanyukta', labels: { en: 'Well-proportioned height and weight', hi: 'ऊंचाई और वजन का संतुलित अनुपात (प्रमाणयुक्त)', mr: 'उंची आणि वजनाचा योग्य तोल (प्रमाणयुक्त)' }, icon: '⚖️' },
+      { value: 'ati_sthaula', labels: { en: 'Heavy build / overweight for height', hi: 'वजन अधिक या भारी शरीर (स्थूल)', mr: 'वजन जास्त किंवा स्थूल शरीर (स्थूल)' }, icon: '➕' },
+      { value: 'ati_krisha', labels: { en: 'Very lean / underweight for height', hi: 'काफी दुबला या कम वजन (कृश)', mr: 'खूप बारीक किंवा कमी वजन (कृश)' }, icon: '➖' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.satmya',
+    concept: 'ayush.dashavidha',
+    attribute: 'satmya',
+    inputType: 'single-choice',
+    required: false,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How easily does your body tolerate changing food and weather (Satmya)?',
+      hi: 'आपका शरीर बदले हुए खान-पान और मौसम के बदलाव को कितनी आसानी से सह लेता है (सात्म्य)?',
+      mr: 'तुमचे शरीर बदललेले अन्न आणि ऋतू-हवामानातील बदल किती सहजतेने सहन करते (सात्म्य)?',
+    },
+    options: [
+      { value: 'sarva_satmya', labels: { en: 'Easily adapts to all climates and foods (Sarva-satmya)', hi: 'हर तरह का खाना व मौसम आसानी से सध जाता है (सर्वसात्म्य)', mr: 'सर्व प्रकारचे अन्न व हवामान सहज सोसते (सर्वसात्म्य)' }, icon: '🌍' },
+      { value: 'madhyama', labels: { en: 'Moderately adaptable (Madhyama Satmya)', hi: 'मध्यम अनुकूलन (मध्यम सात्म्य)', mr: 'मध्यम प्रमाणात सहन होते (मध्यम सात्म्य)' }, icon: '⛅' },
+      { value: 'heena_satmya', labels: { en: 'Very sensitive to cold, heat or food shifts', hi: 'जरा सा मौसम या भोजन बदलने पर तुरंत अस्वस्थ होना (अवर)', mr: 'हवामान किंवा अन्न बदलताच लगेच त्रास होणे (अवर)' }, icon: '⚠️' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.sattva',
+    concept: 'ayush.dashavidha',
+    attribute: 'sattva',
+    inputType: 'single-choice',
+    required: false,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How do you typically cope with mental stress, pain, or difficulty (Sattva)?',
+      hi: 'मानसिक तनाव, दर्द या कठिन परिस्थितियों में आपका मन कैसा रहता है (सत्व)?',
+      mr: 'मानसिक ताण, वेदना किंवा संकटाच्या वेळी तुमचे मन कसे राहते (सत्व)?',
+    },
+    options: [
+      { value: 'pravara', labels: { en: 'Calm, patient and mentally resilient (Pravara)', hi: 'धैर्यवान, शांत और मानसिक रूप से मजबूत (प्रवर सत्व)', mr: 'शांत, संयमी आणि मानसिकदृष्ट्या खंबीर (प्रवर सत्व)' }, icon: '🧘' },
+      { value: 'madhyama', labels: { en: 'Manages with effort and family support (Madhyama)', hi: 'सहारे और समझ से संभाल लेते हैं (मध्यम सत्व)', mr: 'धीर धरून परिस्थिती हाताळता येते (मध्यम सत्व)' }, icon: '🤝' },
+      { value: 'avara', labels: { en: 'Easily fearful, anxious or overwhelmed (Avara)', hi: 'बहुत जल्दी घबरा जाना या डर लगना (अवर सत्व)', mr: 'लगेच घाबरणे किंवा अस्वस्थ होणे (अवर सत्व)' }, icon: '😟' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.ahara_shakti',
+    concept: 'ayush.dashavidha',
+    attribute: 'ahara_shakti',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How would you describe your appetite and digestive power (Ahara Shakti)?',
+      hi: 'आपकी भूख और भोजन पचाने की क्षमता (आहार शक्ति) कैसी है?',
+      mr: 'तुमची भूक आणि अन्न पचनाची ताकद (आहार शक्ती) कशी आहे?',
+    },
+    options: [
+      { value: 'tikshnagni', labels: { en: 'Strong appetite, digests heavy food quickly (Tikshnagni)', hi: 'तेज भूख, जल्दी और अच्छी तरह पचना (तीक्ष्णाग्नि)', mr: 'कडक भूक, जड अन्नही लवकर पचणे (तीक्ष्णाग्नि)' }, icon: '🔥' },
+      { value: 'samagni', labels: { en: 'Balanced appetite and comfortable digestion (Samagni)', hi: 'संतुलित भूख और सामान्य पाचन (समाग्नि)', mr: 'वेळेवर भूक आणि व्यवस्थित पचन (समाग्नि)' }, icon: '🥗' },
+      { value: 'vishamagni', labels: { en: 'Irregular appetite, frequent gas or bloating (Vishamagni)', hi: 'अनियमित भूख, गैस या पेट फूलना (विषमाग्नि)', mr: 'कधी जास्त कधी कमी भूक, गॅसेस होणे (विषमाग्नि)' }, icon: '💨' },
+      { value: 'mandagni', labels: { en: 'Poor appetite, sluggish digestion, heaviness (Mandagni)', hi: 'कम भूख, भारीपन और देर से पचना (मंदाग्नि)', mr: 'कमी भूक, अन्न न पचणे, पोट जड वाटणे (मंदाग्नि)' }, icon: '⏳' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.vyayama_shakti',
+    concept: 'ayush.dashavidha',
+    attribute: 'vyayama_shakti',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How much physical exertion or manual work can you comfortably do (Vyayama Shakti)?',
+      hi: 'आप कितना शारीरिक श्रम, व्यायाम या मेहनत बिना थके कर पाते हैं (व्यायाम शक्ति)?',
+      mr: 'तुम्ही न थकता किती शारीरिक कष्ट, व्यायाम किंवा हालचाल करू शकता (व्यायाम शक्ती)?',
+    },
+    options: [
+      { value: 'pravara', labels: { en: 'High stamina, can do heavy exertion without quick fatigue', hi: 'भारी मेहनत या कसरत बिना जल्दी थके कर सकते हैं (प्रवर)', mr: 'खूप मेहनत किंवा व्यायाम सहज करू शकता (प्रवर)' }, icon: '🏃' },
+      { value: 'madhyama', labels: { en: 'Can do routine daily work and moderate walking', hi: 'दैनिक घरेलू काम व सामान्य चलना-फिरना (मध्यम)', mr: 'दैनंदिन घरकाम व सामान्य चालणे व्यवस्थित होते (मध्यम)' }, icon: '🚶' },
+      { value: 'avara', labels: { en: 'Gets exhausted or breathless with minor exertion', hi: 'हल्की सी मेहनत से भी सांस फूलना या थक जाना (अवर)', mr: 'थोडासाही ताण आला तरी खूप दम लागणे किंवा थकणे (अवर)' }, icon: '🛋️' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.vaya',
+    concept: 'ayush.dashavidha',
+    attribute: 'vaya',
+    inputType: 'single-choice',
+    required: false,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'What is your current stage of life (Vaya)?',
+      hi: 'आपकी आयु का वर्तमान चरण कौन सा है (वय)?',
+      mr: 'तुमचा सध्याचा वयोगट कोणता आहे (वय)?',
+    },
+    options: [
+      { value: 'bala', labels: { en: 'Child / Growing youth (up to 16 years)', hi: 'बाल्यावस्था (16 वर्ष तक)', mr: 'बाल किंवा वाढते वय (१६ वर्षांपर्यंत)' }, icon: '🧒' },
+      { value: 'madhyama', labels: { en: 'Adult / Working age (16 to 60 years)', hi: 'युवा / वयस्क (16 से 60 वर्ष)', mr: 'तरुण / प्रौढ वय (१६ ते ६० वर्षे)' }, icon: '🧑' },
+      { value: 'vriddha', labels: { en: 'Senior / Elderly (above 60 years)', hi: 'वृद्धावस्था (60 वर्ष से अधिक)', mr: 'ज्येष्ठ नागरिक / वृद्ध (६० वर्षांपेक्षा जास्त)' }, icon: '🧓' },
+      { value: 'unknown', labels: { en: 'Not specified', hi: 'उल्लेख नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  // ----------------------------------------------------
+  // AYUSH HISTORY MODE: AHARA-VIHARA (Phase 9)
+  // ----------------------------------------------------
+  {
+    id: 'q.ayush.ahara_diet',
+    concept: 'ayush.ahara_vihara',
+    attribute: 'diet_pattern',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'What best describes your regular daily diet pattern (Ahara)?',
+      hi: 'आपका दैनिक खान-पान मुख्य रूप से किस प्रकार का रहता है (आहार)?',
+      mr: 'तुमचा दैनंदिन आहार प्रामुख्याने कोणत्या प्रकारचा असतो (आहार)?',
+    },
+    options: [
+      { value: 'vegetarian_fresh', labels: { en: 'Freshly cooked vegetarian food at regular times', hi: 'समय पर ताजा बना शाकाहारी भोजन', mr: 'वेळेवर ताजे शिजवलेले शाकाहारी जेवण' }, icon: '🍲' },
+      { value: 'mixed_nonveg', labels: { en: 'Mixed diet including non-vegetarian foods', hi: 'शाकाहारी और मांसाहारी दोनों', mr: 'शाकाहारी व मांसाहारी मिश्रित आहार' }, icon: '🍗' },
+      { value: 'spicy_oily_outside', labels: { en: 'Frequent spicy, oily or street/outside food', hi: 'ज्यादा तला-भुना, तीखा या बाहर का खाना', mr: 'जास्त तेलकट, तिखट किंवा बाहेरचे खाणे' }, icon: '🌶️' },
+      { value: 'irregular_fasting', labels: { en: 'Irregular eating hours / frequent fasting', hi: 'भोजन का कोई निश्चित समय नहीं / बार-बार उपवास', mr: 'जेवणाची अनिश्चित वेळ / वारंवार उपास' }, icon: '⏰' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.ahara_bowel',
+    concept: 'ayush.ahara_vihara',
+    attribute: 'bowel_pattern',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How are your daily bowel movements and digestion (Koshtha)?',
+      hi: 'आपका पेट साफ होने (शौच) की आदत कैसी है (कोष्ठ)?',
+      mr: 'तुमचे पोट साफ होण्याची (शौचाची) सवय कशी आहे (कोष्ठ)?',
+    },
+    options: [
+      { value: 'regular_clear', labels: { en: 'Clear & comfortable once or twice daily', hi: 'रोज नियमित और आसानी से साफ होना', mr: 'दररोज वेळेवर आणि व्यवस्थित पोट साफ होणे' }, icon: '✅' },
+      { value: 'constipated_hard', labels: { en: 'Hard stools, sluggish or constipated (Krura Koshtha)', hi: 'कब्ज, सख्त मल या 2-3 दिन में एक बार (क्रूर कोष्ठ)', mr: 'बद्धकोष्ठता, खडा होणे किंवा २-३ दिवसांतून एकदा (क्रूर कोष्ठ)' }, icon: '🧱' },
+      { value: 'loose_frequent', labels: { en: 'Frequent, soft or loose stools (Mridu Koshtha)', hi: 'जल्दी-जल्दी या ढीला मल आना (मृदु कोष्ठ)', mr: 'वारंवार किंवा पातळ शौचास होणे (मृदू कोष्ठ)' }, icon: '💧' },
+      { value: 'variable_irregular', labels: { en: 'Irregular, unpredictable from day to day', hi: 'अनियमित, कभी सख्त तो कभी ढीला', mr: 'अनियमित, कधी घट्ट तर कधी सैल' }, icon: '🔄' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.vihara_sleep',
+    concept: 'ayush.ahara_vihara',
+    attribute: 'sleep_pattern',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'How is your regular sleep quality and routine (Nidra)?',
+      hi: 'आपकी नींद और विश्राम की दिनचर्या कैसी रहती है (निद्रा)?',
+      mr: 'तुमची झोप आणि विश्रांतीची दिनचर्या कशी असते (निद्रा)?',
+    },
+    options: [
+      { value: 'sound_restful', labels: { en: 'Sound, restful sleep 6 to 8 hours daily', hi: '6 से 8 घंटे की गहरी और आरामदायक नींद', mr: 'दररोज ६ ते ८ तासांची शांत आणि गाढ झोप' }, icon: '😴' },
+      { value: 'disturbed_insomnia', labels: { en: 'Difficulty falling asleep / disturbed waking', hi: 'नींद न आना या बार-बार खुलना', mr: 'झोप न येणे किंवा वारंवार जाग येणे' }, icon: '👁️' },
+      { value: 'excess_daytime', labels: { en: 'Excessive sleep / feeling sleepy during the day', hi: 'दिन में ज्यादा नींद आना या भारीपन', mr: 'दिवसा झोप येणे किंवा सुस्ती वाटणे' }, icon: '🥱' },
+      { value: 'irregular_shifts', labels: { en: 'Irregular night shifts / disrupted sleep cycle', hi: 'नाईट शिफ्ट या अनियमित सोने का समय', mr: 'रात्रपाळी किंवा झोपेची अनियमित वेळ' }, icon: '🌙' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
+
+  {
+    id: 'q.ayush.vihara_activity',
+    concept: 'ayush.ahara_vihara',
+    attribute: 'activity_pattern',
+    inputType: 'single-choice',
+    required: true,
+    priority: 'normal',
+    allowVoice: true,
+    allowTouch: true,
+    text: {
+      en: 'What is your typical daily physical activity and work style (Vihara)?',
+      hi: 'आपकी दिनभर की शारीरिक गतिविधि और काम का ढंग कैसा है (विहार)?',
+      mr: 'तुमची दिवसभरातील शारीरिक हालचाल आणि कामाचे स्वरूप कसे आहे (विहार)?',
+    },
+    options: [
+      { value: 'moderate_active', labels: { en: 'Moderate physical movement, regular walking/work', hi: 'मध्यम सक्रिय, चलना-फिरना और नियमित काम', mr: 'मध्यम हालचाल, नियमित चालणे आणि दैनंदिन कामे' }, icon: '🚶' },
+      { value: 'sedentary_desk', labels: { en: 'Mostly sitting / desk job with little movement', hi: 'ज्यादातर बैठकर काम / कम चलना-फिरना', mr: 'जास्त वेळ बसून काम / हालचाल कमी' }, icon: '🪑' },
+      { value: 'heavy_manual', labels: { en: 'Heavy physical labor / standing for long hours', hi: 'कठिन शारीरिक मेहनत या देर तक खड़े रहना', mr: 'कष्टाचे शारीरिक काम किंवा जास्त वेळ उभे राहणे' }, icon: '🏋️' },
+      { value: 'strenuous_irregular', labels: { en: 'Erratic routine with frequent long travel', hi: 'अनियमित दिनचर्या और बार-बार लंबा सफर', mr: 'अनियमित धावपळ आणि वारंवार लांबचा प्रवास' }, icon: '🚗' },
+      { value: 'unknown', labels: { en: 'Not sure', hi: 'पता नहीं', mr: 'माहित नाही' }, icon: '❓' },
+    ],
+  },
 ];
 
 export function getQuestionById(id) {

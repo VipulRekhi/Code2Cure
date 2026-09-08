@@ -49,7 +49,8 @@ export class QuestionGuardrails {
     if (sessionState.questionsAlreadyAsked && Array.isArray(sessionState.questionsAlreadyAsked)) {
       const isDuplicate = sessionState.questionsAlreadyAsked.some((q) => {
         const qKey = `${q.concept}.${q.attribute}`;
-        return qKey === targetKey || q.text?.trim().toLowerCase() === text.toLowerCase();
+        const qText = typeof q.text === 'string' ? q.text : (typeof q.text === 'object' && q.text !== null ? Object.values(q.text).join(' ') : '');
+        return qKey === targetKey || (qText && qText.trim().toLowerCase() === text.toLowerCase());
       });
       if (isDuplicate) {
         return { valid: false, reason: `DUPLICATE_QUESTION: ${targetKey}` };

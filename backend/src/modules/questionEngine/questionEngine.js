@@ -21,6 +21,22 @@ export class QuestionEngine {
   async getNextQuestionDynamic(requestedLanguage = null, currentResponse = '') {
     const lang = requestedLanguage || this.sessionState.language || 'mr';
 
+    // In AYUSH mode: if the session has already transitioned to AYUSH catalog questions,
+    // continue deterministically through Dashavidha Pariksha and Ahara-Vihara (Phase 9)
+    if (this.sessionState.opdMode === 'AYUSH') {
+      const hasStartedAyush =
+        Array.from(this.sessionState.completedQuestionIds || []).some((id) => id.startsWith('q.ayush.')) ||
+        (this.sessionState.currentQuestionId && this.sessionState.currentQuestionId.startsWith('q.ayush.'));
+      if (hasStartedAyush) {
+        const nextAyush = this.getNextQuestion(lang);
+        if (nextAyush.question) {
+          nextAyush.source = 'DETERMINISTIC_FALLBACK';
+          this.sessionState.recordAskedQuestion(nextAyush.question);
+        }
+        return nextAyush;
+      }
+    }
+
     // Try dynamic LLM question generation first
     try {
       const dynamicResult = await dynamicQuestionService.generateNextQuestion({
@@ -30,6 +46,18 @@ export class QuestionEngine {
       });
 
       if (dynamicResult.shouldAskQuestion === false) {
+        // If LLM has completed intake questions, check if AYUSH mode has pending AYUSH assessment questions
+        if (this.sessionState.opdMode === 'AYUSH') {
+          const nextAyush = this.getNextQuestion(lang);
+          if (nextAyush && nextAyush.status === 'question') {
+            nextAyush.source = 'DETERMINISTIC_FALLBACK';
+            if (nextAyush.question) {
+              this.sessionState.recordAskedQuestion(nextAyush.question);
+            }
+            return nextAyush;
+          }
+        }
+
         return {
           status: 'complete',
           source: dynamicResult.source || 'LLM_DYNAMIC',

@@ -32,6 +32,10 @@ export function resetPatientReviewSummary() {
   isPatientConfirmed = false;
 }
 
+export function setLoadedSummary(summary) {
+  loadedSummary = summary;
+}
+
 registerResetCallback(() => {
   resetPatientReviewSummary();
 });
@@ -500,6 +504,98 @@ export function renderPatientReviewScreen() {
         </div>
       ` : ''}
 
+      ${loadedSummary?.ayushAssessment ? `
+        <!-- SECTION 5B: AYUSH ASSESSMENT (Phase 9 Dashavidha Pariksha & Ahara-Vihara) -->
+        <div class="review-card" style="border-left: 4px solid #059669; background: var(--surface);">
+          <div class="review-card-header" style="background: rgba(5, 150, 105, 0.05);">
+            <span style="display: flex; align-items: center; gap: 0.5rem; color: #047857;">
+              <span>🌿</span>
+              <strong>${t('ayushAssessmentTitle', lang) || 'Ayurvedic Assessment (Dashavidha Pariksha & Ahara-Vihara)'}</strong>
+            </span>
+            <span style="font-size: var(--font-size-xs); color: #059669; font-weight: 700; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.2rem 0.6rem; border-radius: var(--radius-xs);">
+              AYUSH OPD Mode
+            </span>
+          </div>
+          <div class="review-card-body">
+            <!-- Clinical boundary disclaimer banner -->
+            <div style="font-size: var(--font-size-xs); color: #065f46; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 1rem; line-height: 1.5;">
+              ℹ️ ${t('ayushDisclaimer', lang) || 'Descriptive intake observations for Ayurvedic clinician consultation. Not an autonomous dosha diagnosis or herbal prescription.'}
+            </div>
+
+            <!-- Subsection A: Dashavidha Pariksha (10 Parameters) -->
+            <div style="margin-bottom: 1.25rem;">
+              <div style="font-size: var(--font-size-sm); font-weight: 700; color: #065f46; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>✨</span> ${t('dashavidhaTitle', lang) || 'Dashavidha Pariksha (10 Parameters)'}
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.65rem;">
+                ${Object.entries(loadedSummary.ayushAssessment.dashavidha || {}).map(([key, item]) => {
+                  const val = item?.value;
+                  const isAnswered = val !== null && val !== undefined && val !== 'unknown';
+                  const isUnknown = val === 'unknown' || item?.status === 'UNKNOWN';
+                  const labelKey = 'param' + key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+                  const title = t(labelKey, lang) || item?.parameter || key;
+                  const displayVal = isAnswered
+                    ? String(val).replace(/_/g, ' ')
+                    : (isUnknown ? (t('unknown', lang) || 'Unknown') : (t('notProvided', lang) || 'Not provided'));
+                  const badgeBg = isAnswered ? '#ecfdf5' : (isUnknown ? '#fffbeb' : 'var(--surface-subtle)');
+                  const badgeBorder = isAnswered ? '#a7f3d0' : (isUnknown ? '#fde68a' : 'var(--border)');
+                  const badgeColor = isAnswered ? '#065f46' : (isUnknown ? '#92400e' : 'var(--muted-text)');
+
+                  return `
+                    <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; border-radius: var(--radius-sm); padding: 0.55rem 0.75rem;">
+                      <div style="font-size: var(--font-size-xs); color: ${badgeColor}; font-weight: 700;">
+                        ${escapeHtml(title)}
+                      </div>
+                      <div style="font-size: var(--font-size-sm); color: var(--text); font-weight: 600; margin-top: 0.2rem; text-transform: capitalize;">
+                        ${escapeHtml(displayVal)}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Subsection B: Ahara-Vihara (4 Parameters) -->
+            <div>
+              <div style="font-size: var(--font-size-sm); font-weight: 700; color: #065f46; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>🥗</span> ${t('aharaViharaTitle', lang) || 'Ahara-Vihara (Diet & Lifestyle Assessment)'}
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.65rem;">
+                ${Object.entries(loadedSummary.ayushAssessment.aharaVihara || {}).map(([key, item]) => {
+                  const val = item?.value;
+                  const isAnswered = val !== null && val !== undefined && val !== 'unknown';
+                  const isUnknown = val === 'unknown' || item?.status === 'UNKNOWN';
+                  const labelMap = {
+                    diet_pattern: 'paramDiet',
+                    bowel_pattern: 'paramBowel',
+                    sleep_pattern: 'paramSleep',
+                    activity_pattern: 'paramActivity',
+                  };
+                  const title = t(labelMap[key], lang) || item?.parameter || key;
+                  const displayVal = isAnswered
+                    ? String(val).replace(/_/g, ' ')
+                    : (isUnknown ? (t('unknown', lang) || 'Unknown') : (t('notProvided', lang) || 'Not provided'));
+                  const badgeBg = isAnswered ? '#f0fdf4' : (isUnknown ? '#fffbeb' : 'var(--surface-subtle)');
+                  const badgeBorder = isAnswered ? '#bbf7d0' : (isUnknown ? '#fde68a' : 'var(--border)');
+                  const badgeColor = isAnswered ? '#166534' : (isUnknown ? '#92400e' : 'var(--muted-text)');
+
+                  return `
+                    <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; border-radius: var(--radius-sm); padding: 0.55rem 0.75rem;">
+                      <div style="font-size: var(--font-size-xs); color: ${badgeColor}; font-weight: 700;">
+                        ${escapeHtml(title)}
+                      </div>
+                      <div style="font-size: var(--font-size-sm); color: var(--text); font-weight: 600; margin-top: 0.2rem; text-transform: capitalize;">
+                        ${escapeHtml(displayVal)}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- SECTION 6: FULL QUESTIONS & ANSWERS (Complete Verifiable History) -->
       <div class="review-card">
         <div class="review-card-header">
@@ -516,22 +612,22 @@ export function renderPatientReviewScreen() {
         </div>
       </div>
 
-      <!-- SECTION 6.5: SUMMARY FOR DOCTOR (Phase 8.1 Verbal Clinical Summary) -->
+      <!-- SECTION 6.5: SUMMARY FOR DOCTOR (Phase 8.2 Complete Patient Interview Narrative Summary) -->
       <div class="review-card" id="verbal-summary-card" style="border-left: 4px solid var(--primary); background: var(--surface);">
         <div class="review-card-header" style="background: var(--surface-subtle);">
           <span style="display: flex; align-items: center; gap: 0.5rem;">
             <span>📋</span>
             <strong>${t('summaryForDoctor', lang) || 'Summary for Doctor'}</strong>
           </span>
-          <span style="font-size: var(--font-size-xs); color: var(--muted-text); font-weight: 600;">
-            ${verbalSummaryDetails?.wordCount ? `${verbalSummaryDetails.wordCount} words` : ''}
+          <span style="font-size: var(--font-size-xs); color: var(--primary); font-weight: 600;">
+            ✓ ${t('verifiedIntakeSummary', lang) || 'Complete Intake Narrative'}
           </span>
         </div>
         <div class="review-card-body">
           <div style="font-size: var(--font-size-xs); color: var(--muted-text); margin-bottom: 0.65rem; font-weight: 600;">
-            ℹ️ ${t('reviewSummaryBeforeSubmit', lang) || 'Please review this summary before sending it to the doctor.'}
+            ℹ️ ${t('reviewSummaryBeforeSubmit', lang) || 'Please review this complete summary of your answers before sending it to the doctor.'}
           </div>
-          <p id="verbal-summary-paragraph" style="font-size: var(--font-size-base); line-height: 1.6; color: var(--text); margin: 0; font-weight: 500; background: var(--surface); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <p id="verbal-summary-paragraph" style="font-size: var(--font-size-base); line-height: 1.65; color: var(--text); margin: 0; font-weight: 500; background: var(--surface); padding: 1.15rem; border-radius: var(--radius-sm); border: 1px solid var(--border); white-space: pre-line;">
             ${escapeHtml(verbalSummaryText || '')}
           </p>
         </div>

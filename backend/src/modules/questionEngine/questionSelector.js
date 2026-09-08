@@ -34,6 +34,24 @@ export class QuestionSelector {
     if (sessionState.completedQuestionIds.has('q.chief_complaint')) {
       enabledIds.add('q.history.conditions');
       enabledIds.add('q.history.allergies');
+
+      // AYUSH History Mode: Enable Dashavidha Pariksha and Ahara-Vihara parameters (Phase 9)
+      if (sessionState.opdMode === 'AYUSH') {
+        enabledIds.add('q.ayush.prakriti');
+        enabledIds.add('q.ayush.vikriti');
+        enabledIds.add('q.ayush.sara');
+        enabledIds.add('q.ayush.samhanana');
+        enabledIds.add('q.ayush.pramana');
+        enabledIds.add('q.ayush.satmya');
+        enabledIds.add('q.ayush.sattva');
+        enabledIds.add('q.ayush.ahara_shakti');
+        enabledIds.add('q.ayush.vyayama_shakti');
+        enabledIds.add('q.ayush.vaya');
+        enabledIds.add('q.ayush.ahara_diet');
+        enabledIds.add('q.ayush.ahara_bowel');
+        enabledIds.add('q.ayush.vihara_sleep');
+        enabledIds.add('q.ayush.vihara_activity');
+      }
     }
 
     // 2. Evaluate rules against collected facts:

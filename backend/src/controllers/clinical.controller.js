@@ -740,6 +740,8 @@ export const clinicalController = {
         allergies: summary.allergies,
         uncertainItems: summary.uncertainItems,
         verification: summary.verification,
+        ayushAssessment: summary.ayushAssessment || null,
+        aharaVihara: summary.ayushAssessment?.aharaVihara || null,
         allDynamicQuestions: engine.sessionState.questionsAlreadyAsked,
         allPatientAnswers: engine.sessionState.responses,
         examinationHistory,

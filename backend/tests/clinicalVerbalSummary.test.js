@@ -414,4 +414,273 @@ describe('Phase 8.1 Verbal Clinical Summary Suite', () => {
     expect(summaryNew.verbalSummary).not.toContain('छातीत');
     expect(summaryNew.verbalSummary).toContain('गुडघेदुखी');
   });
+
+  // TEST 16: Complete 12-question interview narrative synthesis (Phase 8.2)
+  it('TEST 16: generates a complete interview narrative representing all 12 answered questions with no word limit', () => {
+    const state = new ClinicalSessionState({ sessionId: 's-verbal-16', language: 'en' });
+
+    // Q1: Chief complaint
+    state.recordResponse({
+      question: { id: 'q.chief_complaint', concept: 'symptom.pain.knee', attribute: 'complaint_type' },
+      rawResponse: 'I have severe pain in my left knee',
+      normalizedValue: 'knee_pain',
+      inputMethod: 'VOICE',
+    });
+
+    // Q2: Location
+    state.recordResponse({
+      question: { id: 'q.pain.location', concept: 'symptom.pain.knee', attribute: 'location' },
+      rawResponse: 'in my left knee',
+      normalizedValue: 'left knee',
+      inputMethod: 'VOICE',
+    });
+    state.collectedFacts['symptom.pain.knee.location'] = {
+      concept: 'symptom.pain.knee',
+      attribute: 'location',
+      value: 'knee',
+      status: 'PRESENT',
+      source: 'PATIENT_VOICE',
+    };
+
+    // Q3: Duration
+    state.recordResponse({
+      question: { id: 'q.pain.duration', concept: 'symptom.pain.knee', attribute: 'duration' },
+      rawResponse: '5 days',
+      normalizedValue: { value: 5, unit: 'days' },
+      inputMethod: 'TOUCH',
+    });
+
+    // Q4: Severity
+    state.recordResponse({
+      question: { id: 'q.pain.severity', concept: 'symptom.pain.knee', attribute: 'severity' },
+      rawResponse: 'moderate pain',
+      normalizedValue: { level: 'moderate', score: 5 },
+      inputMethod: 'TOUCH',
+    });
+
+    // Q5: Injury / Trauma history
+    state.recordResponse({
+      question: { id: 'q.pain.injury', concept: 'symptom.injury', attribute: 'mechanism' },
+      rawResponse: 'I fell down on the stairs',
+      normalizedValue: 'fell down',
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+
+    // Q6: Swelling
+    state.recordResponse({
+      question: { id: 'q.pain.swelling', concept: 'symptom.swelling', attribute: 'presence' },
+      rawResponse: 'Yes, it is noticeably swollen',
+      normalizedValue: true,
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+
+    // Q7: Redness
+    state.recordResponse({
+      question: { id: 'q.pain.redness', concept: 'symptom.redness', attribute: 'presence' },
+      rawResponse: 'No redness',
+      normalizedValue: false,
+      status: 'ABSENT',
+      inputMethod: 'TOUCH',
+    });
+
+    // Q8: Functional mobility / weight bearing
+    state.recordResponse({
+      question: { id: 'q.knee.walking', concept: 'symptom.mobility', attribute: 'walking' },
+      rawResponse: 'Yes, it hurts when walking and bearing weight',
+      normalizedValue: true,
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+
+    // Q9: Pain radiation
+    state.recordResponse({
+      question: { id: 'q.pain.radiation', concept: 'symptom.pain', attribute: 'radiation' },
+      rawResponse: 'No, pain does not spread anywhere else',
+      normalizedValue: false,
+      status: 'ABSENT',
+      inputMethod: 'VOICE',
+    });
+
+    // Q10: Fever
+    state.recordResponse({
+      question: { id: 'q.fever', concept: 'symptom.fever', attribute: 'presence' },
+      rawResponse: 'No fever at all',
+      normalizedValue: false,
+      status: 'ABSENT',
+      inputMethod: 'VOICE',
+    });
+
+    // Q11: Neurological (numbness)
+    state.recordResponse({
+      question: { id: 'q.numbness', concept: 'symptom.numbness', attribute: 'presence' },
+      rawResponse: 'No numbness or tingling',
+      normalizedValue: false,
+      status: 'ABSENT',
+      inputMethod: 'VOICE',
+    });
+
+    // Q12: Allergies
+    state.recordResponse({
+      question: { id: 'q.allergies', concept: 'history.allergies', attribute: 'allergies' },
+      rawResponse: 'I am allergic to penicillin',
+      normalizedValue: 'penicillin',
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+    state.collectedFacts['history.allergies'] = {
+      concept: 'history.allergies',
+      attribute: 'items',
+      value: ['penicillin'],
+      status: 'PRESENT',
+      source: 'PATIENT_VOICE',
+    };
+
+    const summary = state.getClinicalSummary([], { language: 'en' });
+    const text = summary.verbalSummary;
+    const meta = summary.verbalSummaryDetails;
+
+    // 1. Check representation of all answered domains in narrative
+    expect(text.toLowerCase()).toContain('knee');
+    expect(text).toContain('5 days');
+    expect(text).toContain('moderate severity');
+    expect(text.toLowerCase()).toContain('injury');
+    expect(text.toLowerCase()).toContain('swelling');
+    expect(text.toLowerCase()).toContain('redness');
+    expect(text.toLowerCase()).toContain('walking');
+    expect(text.toLowerCase()).toContain('radiation');
+    expect(text.toLowerCase()).toContain('fever');
+    expect(text.toLowerCase()).toContain('numbness');
+    expect(text.toLowerCase()).toContain('penicillin');
+
+    // 2. No artificial 70-word limit — comprehensive paragraph
+    expect(meta.wordCount).toBeGreaterThan(60);
+
+    // 3. Completeness tracking
+    expect(meta.representedQuestionCount).toBeGreaterThanOrEqual(12);
+    expect(meta.answeredQuestionCount).toBeGreaterThanOrEqual(12);
+    expect(meta.sourceQuestionIds).toContain('q.chief_complaint');
+    expect(meta.sourceQuestionIds).toContain('q.pain.duration');
+    expect(meta.sourceQuestionIds).toContain('q.pain.injury');
+    expect(meta.sourceQuestionIds).toContain('q.pain.swelling');
+    expect(meta.sourceQuestionIds).toContain('q.knee.walking');
+    expect(meta.sourceQuestionIds).toContain('q.allergies');
+  });
+
+  // TEST 17: Zero internal concept or technical enum leakage (Phase 8.2)
+  it('TEST 17: guarantees zero leakage of internal enums, concept keys, or snake_case labels', () => {
+    const state = new ClinicalSessionState({ sessionId: 's-verbal-17', language: 'en' });
+    state.recordResponse({
+      question: { id: 'q.chief_complaint', concept: 'symptom.pain.knee', attribute: 'complaint_type' },
+      rawResponse: 'knee pain',
+      normalizedValue: 'knee_pain',
+      inputMethod: 'TOUCH',
+    });
+    // Add raw system enums that previously leaked
+    state.collectedFacts['history.allergies'] = {
+      concept: 'history.allergies',
+      attribute: 'status',
+      value: 'YES_DRUG_ALLERGY',
+      status: 'PRESENT',
+    };
+    state.collectedFacts['symptom.fever'] = {
+      concept: 'symptom.fever',
+      attribute: 'status',
+      value: 'NO_FEVER',
+      status: 'ABSENT',
+    };
+    state.collectedFacts['symptom.injury'] = {
+      concept: 'symptom.injury',
+      attribute: 'mechanism',
+      value: 'fell down',
+      status: 'PRESENT',
+    };
+
+    const summary = state.getClinicalSummary([], { language: 'en' });
+    const text = summary.verbalSummary;
+
+    // Must never leak technical internal tokens
+    expect(text).not.toContain('YES_DRUG_ALLERGY');
+    expect(text).not.toContain('NO_FEVER');
+    expect(text).not.toContain('UNKNOWN_');
+    expect(text).not.toContain('symptom.');
+    expect(text).not.toContain('injury, joint');
+    expect(text).not.toContain('joint, injury');
+    expect(text).not.toContain('complaint_type');
+  });
+
+  // TEST 18: Fallback loop incorporates dynamic questions asked outside the standard catalog
+  it('TEST 18: dynamically incorporates uncataloged question responses via the completeness fallback loop', () => {
+    const state = new ClinicalSessionState({ sessionId: 's-verbal-18', language: 'en' });
+    state.recordResponse({
+      question: { id: 'q.chief_complaint', concept: 'symptom.pain.knee', attribute: 'complaint_type' },
+      rawResponse: 'knee pain',
+      normalizedValue: 'knee_pain',
+      inputMethod: 'TOUCH',
+    });
+
+    // Custom dynamic question from LLM / Qwen
+    state.recordResponse({
+      question: { id: 'q.dynamic.prior_surgery', concept: 'prior_surgery', attribute: 'history', text: 'Have you had previous surgery on this joint?' },
+      rawResponse: 'No surgery ever',
+      normalizedValue: false,
+      status: 'ABSENT',
+      inputMethod: 'VOICE',
+    });
+
+    const summary = state.getClinicalSummary([], { language: 'en' });
+    expect(summary.verbalSummaryDetails.sourceQuestionIds).toContain('q.dynamic.prior_surgery');
+    expect(summary.verbalSummary.toLowerCase()).toContain('surgery');
+  });
+
+  // TEST 19: Full Marathi narrative represents all answered items without English leakage
+  it('TEST 19: generates a rich Marathi intake narrative with all 12 answered questions represented', () => {
+    const state = new ClinicalSessionState({ sessionId: 's-verbal-19', language: 'mr' });
+    state.recordResponse({
+      question: { id: 'q.chief_complaint', concept: 'symptom.pain.knee', attribute: 'complaint_type' },
+      rawResponse: 'गुडघेदुखी',
+      normalizedValue: 'knee_pain',
+      inputMethod: 'VOICE',
+    });
+    state.recordResponse({
+      question: { id: 'q.pain.duration', concept: 'symptom.pain.knee', attribute: 'duration' },
+      rawResponse: '३ दिवस',
+      normalizedValue: { value: 3, unit: 'days' },
+      inputMethod: 'TOUCH',
+    });
+    state.recordResponse({
+      question: { id: 'q.pain.injury', concept: 'symptom.injury', attribute: 'mechanism' },
+      rawResponse: 'पडल्यामुळे',
+      normalizedValue: 'पडल्यामुळे',
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+    state.recordResponse({
+      question: { id: 'q.pain.swelling', concept: 'symptom.swelling', attribute: 'presence' },
+      rawResponse: 'हो सूज आहे',
+      normalizedValue: true,
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+    state.recordResponse({
+      question: { id: 'q.knee.walking', concept: 'symptom.mobility', attribute: 'walking' },
+      rawResponse: 'चालताना त्रास होतो',
+      normalizedValue: true,
+      status: 'PRESENT',
+      inputMethod: 'VOICE',
+    });
+
+    const summary = state.getClinicalSummary([], { language: 'mr' });
+    const text = summary.verbalSummary;
+
+    expect(text).toContain('रुग्णाने');
+    expect(text).toContain('३ दिवस');
+    expect(text).toContain('गुडघेदुखी');
+    expect(text).toContain('दुखापती');
+    expect(text).toContain('सूज');
+    expect(text).toContain('चालताना त्रास');
+    expect(text).not.toContain('YES_DRUG_ALLERGY');
+    expect(text).not.toContain('symptom.');
+  });
 });
