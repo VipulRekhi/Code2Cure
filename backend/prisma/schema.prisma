@@ -1,6 +1,7 @@
 // ==========================================
 // Prisma Schema Definition for MediKiosk
-// Phase 3: Clinical Ontology & Sessions
+// Phase 10: Connected Patient ↔ Supabase ↔ Doctor
+// Institutional Hierarchy & OPD Encounters
 // ==========================================
 
 datasource db {
@@ -12,6 +13,10 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+// ------------------------------------------
+// Enums
+// ------------------------------------------
 
 enum Role {
   PATIENT
@@ -46,6 +51,10 @@ enum DataProvenance {
   PHYSICIAN_VERIFIED
 }
 
+// ------------------------------------------
+// 1. Identity & Institutional Entities
+// ------------------------------------------
+
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -60,36 +69,102 @@ model User {
   @@map("users")
 }
 
-model Patient {
-  id                String            @id @default(uuid())
-  userId            String            @unique
-  patientIdentifier String            @unique
-  firstName         String
-  lastName          String
-  dateOfBirth       DateTime?
-  phone             String?
-  preferredLanguage String            @default("HI")
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+model Hospital {
+  id          String       @id @default(uuid())
+  code        String       @unique // e.g. "HOSP-PUNE-01"
+  name        String       // e.g. "District Civil Hospital, Pune"
+  location    String?      // e.g. "Aundh, Pune"
+  city        String?      // e.g. "Pune"
+  state       String?      // e.g. "Maharashtra"
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consents          Consent[]
-  clinicalSessions  ClinicalSession[]
+  departments Department[]
+  doctors     Doctor[]
+  encounters  Encounter[]
 
-  @@map("patients")
+  @@map("hospitals")
+}
+
+model Department {
+  id          String      @id @default(uuid())
+  hospitalId  String
+  code        String      // e.g. "GEN-MED-01", "AYU-KAYA-01"
+  name        String      // e.g. "General Medicine", "Ayurvedic OPD / Kayachikitsa"
+  opdType     String      @default("GENERAL") // "GENERAL" | "AYUSH" | "SPECIALTY" | "OTHER"
+  roomNumber  String?     // e.g. "Room 03"
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  hospital    Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  doctors     Doctor[]
+  encounters  Encounter[]
+
+  @@unique([hospitalId, code])
+  @@index([hospitalId])
+  @@map("departments")
 }
 
 model Doctor {
-  id             String    @id @default(uuid())
-  userId         String    @unique
+  id             String         @id @default(uuid())
+  userId         String         @unique
+  hospitalId     String?
+  departmentId   String?
   name           String
   specialization String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  qualification  String?        // e.g. "MBBS, MD (General Medicine)"
+  registrationNo String?        // e.g. "MMC-2018-0914"
+  roomNumber     String?        // e.g. "OPD Room 3"
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospital       Hospital?      @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  department     Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  encounters     Encounter[]
+  notes          DoctorNote[]
+  reviews        DoctorReview[]
 
+  @@index([hospitalId])
+  @@index([departmentId])
   @@map("doctors")
+}
+
+model Patient {
+  id                String            @id @default(uuid())
+  userId            String?           @unique // Optional to permit walk-in kiosk registration without web account
+  patientIdentifier String            @unique // e.g. "PAT-001928" or "MK-NEW-1029"
+  firstName         String
+  lastName          String
+  fullName          String?
+  dateOfBirth       DateTime?
+  ageYears          Int?
+  gender            String?           // "MALE" | "FEMALE" | "OTHER"
+  phone             String?
+  phoneNumberHash   String?
+  abhaId            String?           @unique // Ayushman Bharat Health Account ID
+  abhaAddress       String?           @unique // e.g. "patient@abdm"
+  hospitalUhid      String?           @unique // Hospital Unique Health ID
+  address           String?
+  preferredLanguage String            @default("HI")
+  medicalHistory    Json?             // Array of past diagnosed conditions
+  surgicalHistory   Json?             // Array of past surgeries
+  familyHistory     Json?             // Family history summary
+  personalHistory   Json?             // Diet, sleep, habits
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user              User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consents          Consent[]
+  encounters        Encounter[]
+  clinicalSessions  ClinicalSession[]
+
+  @@index([phone])
+  @@index([phoneNumberHash])
+  @@map("patients")
 }
 
 model Consent {
@@ -109,11 +184,50 @@ model Consent {
 }
 
 // ------------------------------------------
-// Phase 3: Clinical Session & Intake Storage
+// 2. OPD Encounters (Single Patient Visit)
+// ------------------------------------------
+
+model Encounter {
+  id                String            @id @default(uuid())
+  patientId         String
+  hospitalId        String
+  departmentId      String
+  attendingDoctorId String?
+  tokenNumber       String            // e.g. "GM-001", "AYU-014"
+  opdMode           String            @default("GENERAL") // "GENERAL" | "AYUSH" | "OTHER"
+  visitType         String            @default("WALK_IN") // "WALK_IN" | "APPOINTMENT" | "REFERRAL" | "EMERGENCY"
+  status            String            @default("REGISTERED") // "REGISTERED" | "WAITING" | "IN_CONSULTATION" | "COMPLETED" | "CANCELLED"
+  triageTier        String            @default("NORMAL")     // "NORMAL" | "NEEDS_REVIEW" | "CRITICAL" | "URGENT"
+  priorityReason    String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  patient           Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  hospital          Hospital          @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  department        Department        @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  attendingDoctor   Doctor?           @relation(fields: [attendingDoctorId], references: [id], onDelete: SetNull)
+  clinicalSessions  ClinicalSession[]
+  notes             DoctorNote[]
+  reviews           DoctorReview[]
+
+  @@index([patientId])
+  @@index([hospitalId])
+  @@index([departmentId])
+  @@index([attendingDoctorId])
+  @@index([status])
+  @@index([tokenNumber])
+  @@map("encounters")
+}
+
+// ------------------------------------------
+// 3. Clinical Session & Intake Storage
 // ------------------------------------------
 
 model ClinicalSession {
   id                String             @id @default(uuid())
+  encounterId       String?
   patientId         String?
   language          String             @default("mr")
   opdMode           String             @default("GENERAL") // "GENERAL" | "AYUSH" | "OTHER"
@@ -122,11 +236,13 @@ model ClinicalSession {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
+  encounter         Encounter?         @relation(fields: [encounterId], references: [id], onDelete: SetNull)
   patient           Patient?           @relation(fields: [patientId], references: [id], onDelete: SetNull)
   responses         QuestionResponse[]
   facts             ClinicalFact[]
   documents         MedicalDocument[]
 
+  @@index([encounterId])
   @@index([patientId])
   @@map("clinical_sessions")
 }
@@ -191,3 +307,46 @@ model MedicalDocument {
   @@map("medical_documents")
 }
 
+// ------------------------------------------
+// 4. Physician Consultation & Review Records
+// ------------------------------------------
+
+model DoctorNote {
+  id          String      @id @default(uuid())
+  encounterId String
+  sessionId   String?
+  doctorId    String
+  noteText    String      @db.Text
+  noteType    String      @default("CLINICAL_NOTE") // "CLINICAL_NOTE" | "PRESCRIPTION" | "DIAGNOSTIC_IMPRESSION"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  encounter   Encounter   @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  doctor      Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId])
+  @@index([doctorId])
+  @@map("doctor_notes")
+}
+
+model DoctorReview {
+  id                String      @id @default(uuid())
+  encounterId       String
+  sessionId         String?
+  doctorId          String
+  status            String      @default("CONFIRMED") // "PENDING" | "IN_REVIEW" | "CONFIRMED" | "SIGNED_OFF"
+  comments          String?     @db.Text
+  reviewedHistory   Boolean     @default(true)
+  reviewedDocuments Boolean     @default(true)
+  reviewedAyush     Boolean     @default(false)
+  signedAt          DateTime    @default(now())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  encounter         Encounter   @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  doctor            Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId])
+  @@index([doctorId])
+  @@map("doctor_reviews")
+}

@@ -10,7 +10,7 @@ import { t } from './i18n.js';
 import { showHelpModal } from './screens/help.js';
 import { renderDebugPanel } from './components/debugPanel.js';
 
-// Screens Map
+import { renderLandingScreen } from './screens/landing.js';
 import { renderWelcomeScreen } from './screens/welcome.js';
 import { renderLanguageScreen } from './screens/language.js';
 import { renderIdentifyScreen } from './screens/identify.js';
@@ -25,6 +25,7 @@ import { renderSubmissionScreen } from './screens/submission.js';
 import { renderCompleteScreen } from './screens/complete.js';
 
 const screenRenderers = {
+  landing: renderLandingScreen,
   welcome: renderWelcomeScreen,
   language: renderLanguageScreen,
   identify: renderIdentifyScreen,
@@ -92,7 +93,7 @@ class Router {
 
   renderCurrentScreen() {
     const screenName = appState.currentScreen;
-    const renderer = screenRenderers[screenName] || screenRenderers.welcome;
+    const renderer = screenRenderers[screenName] || screenRenderers.landing || screenRenderers.welcome;
 
     // 1. Render Header & Progress
     if (this.headerEl) renderHeader(this.headerEl);

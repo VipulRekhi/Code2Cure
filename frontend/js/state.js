@@ -1,5 +1,5 @@
 /**
- * MediKiosk Centralized Application State (Section 14 & 27)
+ * MediKiosk Centralized Application State (Section 14 & Phase 10 Institutional State)
  * Strictly separates patient-facing vernacular text from internal language-neutral clinical data.
  */
 
@@ -8,14 +8,54 @@ export const appState = {
   backendSessionId: null,
   language: 'mr', // Default to Marathi for Maharashtra / AIIA context, switchable anytime
   
-  // Patient Identity (Section 15)
+  // Patient Identity (Phase 10 Persistent Onboarding)
   patient: {
     id: null,
     identifier: null,
-    type: 'NEW', // 'NEW' | 'EXISTING_ABHA' | 'ASSISTED'
+    type: 'NEW', // 'NEW' | 'EXISTING' | 'EXISTING_ABHA' | 'ASSISTED'
     name: null,
+    fullName: null,
+    firstName: null,
+    lastName: null,
     age: null,
+    ageYears: null,
+    gender: 'OTHER',
     phone: null,
+    dateOfBirth: null,
+    abhaId: null,
+    abhaAddress: null,
+    hospitalUhid: null,
+    address: null,
+    preferredLanguage: 'MR',
+    medicalHistory: [],
+    surgicalHistory: [],
+    familyHistory: null,
+    personalHistory: null,
+  },
+
+  // Institutional Hierarchy & OPD Encounter (Phase 10)
+  hospital: {
+    id: null,
+    code: null,
+    name: null,
+  },
+  department: {
+    id: null,
+    code: null,
+    name: null,
+    opdType: 'GENERAL',
+    roomNumber: null,
+  },
+  doctor: {
+    id: null,
+    name: null,
+    specialization: null,
+  },
+  encounter: {
+    id: null,
+    tokenNumber: null,
+    status: null,
+    triageTier: 'NORMAL',
   },
 
   // Informed Consent (Section 16)
@@ -29,7 +69,7 @@ export const appState = {
   opdMode: 'GENERAL', // 'GENERAL' | 'AYUSH' | 'OTHER'
 
   // Current Step & Navigation History
-  currentScreen: 'welcome',
+  currentScreen: 'landing',
   historyStack: [],
 
   // Clinical Chief Complaint & History Slots (Language-neutral)
@@ -103,7 +143,7 @@ export function registerResetCallback(fn) {
 
 /**
  * Resets only the clinical intake session (chief complaint, active questions, conversation history, documents)
- * while preserving patient registration and consent.
+ * while preserving patient registration and institutional encounter.
  */
 export function resetClinicalSession(notify = true) {
   appState.backendSessionId = null;
@@ -144,12 +184,31 @@ export function resetSession(notify = true) {
     identifier: null,
     type: 'NEW',
     name: null,
+    fullName: null,
+    firstName: null,
+    lastName: null,
     age: null,
+    ageYears: null,
+    gender: 'OTHER',
     phone: null,
+    dateOfBirth: null,
+    abhaId: null,
+    abhaAddress: null,
+    hospitalUhid: null,
+    address: null,
+    preferredLanguage: 'MR',
+    medicalHistory: [],
+    surgicalHistory: [],
+    familyHistory: null,
+    personalHistory: null,
   };
+  appState.hospital = { id: null, code: null, name: null };
+  appState.department = { id: null, code: null, name: null, opdType: 'GENERAL', roomNumber: null };
+  appState.doctor = { id: null, name: null, specialization: null };
+  appState.encounter = { id: null, tokenNumber: null, status: null, triageTier: 'NORMAL' };
   appState.consent = { granted: false, timestamp: null, version: '1.0' };
   appState.opdMode = 'GENERAL';
-  appState.currentScreen = 'welcome';
+  appState.currentScreen = 'landing';
   appState.historyStack = [];
   appState.complaint = {
     id: null,
@@ -171,7 +230,7 @@ export function resetSession(notify = true) {
   appState.voice = { status: 'IDLE', transcript: null, matchedSlot: null };
   appState.lastInteractionTime = Date.now();
 
-  // Clear any temporary sessionStorage
+  // Clear temporary sessionStorage
   if (typeof sessionStorage !== 'undefined') {
     sessionStorage.removeItem('medikiosk_patient_session');
   }
@@ -185,4 +244,3 @@ export function resetSession(notify = true) {
     notifyStateChange('reset');
   }
 }
-

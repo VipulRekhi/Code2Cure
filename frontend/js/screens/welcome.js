@@ -25,11 +25,16 @@ export function renderWelcomeScreen() {
     <div class="screen-card screen-card-split" style="max-width: 1140px; margin: 0 auto;">
       <!-- Left Column: Copy, CTAs, Trust Items -->
       <div style="display: flex; flex-direction: column; justify-content: center;">
-        <!-- Audio Narration Pill -->
-        <button id="btn-welcome-audio" class="audio-prompt-bar">
-          <span aria-hidden="true">🔊</span>
-          <span>${t('listen', lang)}</span>
-        </button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <button id="btn-welcome-portal-select" class="btn btn-secondary" style="font-size: var(--font-size-xs); padding: 0.25rem 0.75rem; border-radius: 9999px;">
+            ← ${t('switchPortal', lang) || 'Switch Portal'}
+          </button>
+          <!-- Audio Narration Pill -->
+          <button id="btn-welcome-audio" class="audio-prompt-bar" style="margin: 0;">
+            <span aria-hidden="true">🔊</span>
+            <span>${t('listen', lang)}</span>
+          </button>
+        </div>
 
         <h1 class="kiosk-question-title" style="font-size: var(--font-size-hero); line-height: 1.15; color: var(--primary); margin-bottom: 1.25rem;">
           ${headlineHtml}
@@ -115,6 +120,11 @@ export function renderWelcomeScreen() {
   return {
     html,
     attachEvents: () => {
+      // 0. Switch Portal / Role
+      document.getElementById('btn-welcome-portal-select')?.addEventListener('click', () => {
+        router.navigate('landing');
+      });
+
       // 1. Primary Start Button
       document.getElementById('btn-welcome-start')?.addEventListener('click', () => {
         resetSession();

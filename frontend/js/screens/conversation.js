@@ -296,6 +296,7 @@ async function initBackendSession(lang) {
   try {
     const sessionRes = await api.createClinicalSession({
       patientId: appState.patient?.id || null,
+      encounterId: appState.encounter?.id || null,
       language: lang,
       opdMode: appState.opdMode || 'GENERAL',
     });

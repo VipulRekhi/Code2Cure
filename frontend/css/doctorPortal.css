@@ -1,0 +1,1092 @@
+/* ==========================================================================
+   MediKiosk — Phase 10 Doctor / Physician Clinical Portal Stylesheet
+   Theme: Hospital Clinical Workstation (Navy, Clinical Blue, Soft Teal, White)
+   ========================================================================== */
+
+:root {
+  --doc-bg-body: #f8fafc;
+  --doc-bg-surface: #ffffff;
+  --doc-bg-sidebar: #0f172a;
+  --doc-bg-sidebar-hover: #1e293b;
+  --doc-bg-sidebar-active: #1e3a8a;
+  
+  --doc-primary: #1d4ed8;
+  --doc-primary-hover: #1e40af;
+  --doc-primary-light: #eff6ff;
+  
+  --doc-teal: #0d9488;
+  --doc-teal-light: #f0fdfa;
+  
+  --doc-danger: #dc2626;
+  --doc-danger-light: #fef2f2;
+  --doc-danger-border: #fecaca;
+  
+  --doc-warning: #d97706;
+  --doc-warning-light: #fffbeb;
+  --doc-warning-border: #fde68a;
+  
+  --doc-success: #16a34a;
+  --doc-success-light: #f0fdf4;
+  --doc-success-border: #bbf7d0;
+
+  --doc-text-main: #0f172a;
+  --doc-text-muted: #64748b;
+  --doc-text-light: #94a3b8;
+  --doc-border: #e2e8f0;
+  --doc-border-strong: #cbd5e1;
+  
+  --doc-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --doc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --doc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  --doc-font: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Base resets for Doctor Portal container */
+#doctor-app {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  background-color: var(--doc-bg-body);
+  font-family: var(--doc-font);
+  color: var(--doc-text-main);
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+#doctor-app * {
+  box-sizing: border-box;
+}
+
+/* Layout Grid */
+.doc-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* -------------------------------------------------------------
+   1. Left Navigation Sidebar
+   ------------------------------------------------------------- */
+.doc-sidebar {
+  width: 280px;
+  background: var(--doc-bg-sidebar);
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 1px solid #1e293b;
+  user-select: none;
+  z-index: 50;
+}
+
+.doc-sidebar-header {
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.doc-logo-badge {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #2563eb, #0d9488);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.doc-brand-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.doc-brand-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.doc-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex-grow: 1;
+}
+
+.doc-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.doc-nav-item:hover {
+  background: var(--doc-bg-sidebar-hover);
+  color: #ffffff;
+}
+
+.doc-nav-item.active {
+  background: var(--doc-bg-sidebar-active);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.doc-nav-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.doc-nav-icon {
+  font-size: 1.15rem;
+}
+
+.doc-badge-pill {
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.doc-badge-alert {
+  background: var(--doc-danger);
+  color: #ffffff;
+}
+
+.doc-badge-count {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.doc-sidebar-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0b1120;
+}
+
+.doc-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.doc-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.doc-user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.doc-user-role {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.doc-logout-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.35rem;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.doc-logout-btn:hover {
+  color: #ef4444;
+}
+
+/* -------------------------------------------------------------
+   2. Main Workstation Area & Top Bar
+   ------------------------------------------------------------- */
+.doc-main-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg-body);
+}
+
+.doc-topbar {
+  height: 64px;
+  background: var(--doc-bg-surface);
+  border-bottom: 1px solid var(--doc-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.doc-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  width: 360px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.doc-search-wrapper:focus-within {
+  border-color: var(--doc-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.doc-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  width: 100%;
+  color: var(--doc-text-main);
+}
+
+.doc-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.doc-hospital-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid var(--doc-border);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+}
+
+.doc-action-btn {
+  background: #ffffff;
+  border: 1px solid var(--doc-border);
+  color: var(--doc-text-muted);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s;
+}
+
+.doc-action-btn:hover {
+  background: #f8fafc;
+  color: var(--doc-text-main);
+  border-color: var(--doc-border-strong);
+}
+
+.doc-kiosk-switch-btn {
+  background: linear-gradient(135deg, #1e3a8a, #0d9488);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s, opacity 0.15s;
+}
+
+.doc-kiosk-switch-btn:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.doc-stage-content {
+  padding: 1.75rem 2rem;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* -------------------------------------------------------------
+   3. Dashboard Widgets & Metric Cards
+   ------------------------------------------------------------- */
+.doc-welcome-banner {
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  color: #ffffff;
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--doc-shadow-md);
+}
+
+.doc-welcome-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.doc-welcome-subtitle {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.doc-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.doc-stat-card {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--doc-shadow-sm);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.doc-stat-val {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--doc-text-main);
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.doc-stat-label {
+  font-size: 0.82rem;
+  color: var(--doc-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.doc-stat-icon.queue { background: #dbeafe; color: #1d4ed8; }
+.doc-stat-icon.kiosk { background: #ccfbf1; color: #0d9488; }
+.doc-stat-icon.pending { background: #fef3c7; color: #d97706; }
+.doc-stat-icon.critical { background: #fee2e2; color: #dc2626; }
+
+/* -------------------------------------------------------------
+   4. Live OPD Queue Table
+   ------------------------------------------------------------- */
+.doc-table-card {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  box-shadow: var(--doc-shadow-sm);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.doc-table-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--doc-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.doc-table-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--doc-text-main);
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.doc-table th {
+  background: #f8fafc;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--doc-border);
+}
+
+.doc-table td {
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--doc-border);
+  color: var(--doc-text-main);
+  vertical-align: middle;
+}
+
+.doc-table tr:hover td {
+  background: #f8fafc;
+}
+
+.doc-token-badge {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  background: #f1f5f9;
+  border: 1px solid var(--doc-border-strong);
+  border-radius: 6px;
+  color: #1e293b;
+}
+
+.doc-triage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.doc-triage-badge.critical {
+  background: var(--doc-danger-light);
+  color: var(--doc-danger);
+  border: 1px solid var(--doc-danger-border);
+}
+
+.doc-triage-badge.needs-review {
+  background: var(--doc-warning-light);
+  color: var(--doc-warning);
+  border: 1px solid var(--doc-warning-border);
+}
+
+.doc-triage-badge.normal {
+  background: var(--doc-success-light);
+  color: var(--doc-success);
+  border: 1px solid var(--doc-success-border);
+}
+
+.doc-opd-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.doc-opd-badge.ayush { background: #ccfbf1; color: #0f766e; }
+.doc-opd-badge.general { background: #e0e7ff; color: #3730a3; }
+
+.doc-btn-open {
+  background: var(--doc-primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.15s;
+}
+
+.doc-btn-open:hover {
+  background: var(--doc-primary-hover);
+}
+
+/* -------------------------------------------------------------
+   5. PATIENT WORKSPACE (The Core Clinician Review View)
+   ------------------------------------------------------------- */
+.doc-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Section A: Patient Header */
+.doc-patient-header-card {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--doc-shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 6px solid var(--doc-primary);
+}
+
+.doc-patient-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.doc-patient-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--doc-text-main);
+  letter-spacing: -0.02em;
+}
+
+.doc-patient-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--doc-text-muted);
+}
+
+/* Section B: Priority Alert Banner */
+.doc-critical-banner {
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
+}
+
+.doc-critical-icon {
+  font-size: 2rem;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.doc-critical-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #991b1b;
+  margin-bottom: 0.25rem;
+}
+
+.doc-critical-text {
+  font-size: 0.95rem;
+  color: #7f1d1d;
+  line-height: 1.5;
+}
+
+/* Section C: Narrative Verbal Summary */
+.doc-narrative-card {
+  background: linear-gradient(to right, #f0fdf4, #ffffff);
+  border: 1px solid #bbf7d0;
+  border-left: 6px solid #16a34a;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: var(--doc-shadow-sm);
+}
+
+.doc-narrative-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.doc-narrative-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-narrative-body {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #14532d;
+  font-weight: 500;
+}
+
+/* Section D: Structured Clinical Grid */
+.doc-structured-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.doc-structured-card {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  box-shadow: var(--doc-shadow-sm);
+}
+
+.doc-structured-card h4 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--doc-text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--doc-border);
+  padding-bottom: 0.35rem;
+}
+
+.doc-structured-val {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--doc-text-main);
+  line-height: 1.4;
+}
+
+/* Section E: AYUSH Assessment Card */
+.doc-ayush-card {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-left: 6px solid #0d9488;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: var(--doc-shadow-sm);
+}
+
+.doc-ayush-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f766e;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-ayush-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.doc-ayush-param-box {
+  background: #ffffff;
+  border: 1px solid #ccfbf1;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.doc-ayush-param-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #115e59;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.doc-ayush-param-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Section F: Medications & Allergies Dual-Column */
+.doc-meds-container {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: var(--doc-shadow-sm);
+}
+
+.doc-meds-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--doc-text-main);
+}
+
+.doc-meds-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.doc-med-col {
+  background: #f8fafc;
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.doc-med-col-heading {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--doc-border);
+}
+
+.doc-med-col-heading.patient { color: #1d4ed8; }
+.doc-med-col-heading.ocr { color: #0d9488; }
+
+.doc-med-item {
+  background: #ffffff;
+  border: 1px solid var(--doc-border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.doc-discrepancy-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 0.85rem 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #92400e;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Section G: Uploaded Documents & OCR */
+.doc-docs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.doc-doc-card {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.doc-doc-preview {
+  background: #0f172a;
+  color: #38bdf8;
+  font-family: monospace;
+  font-size: 0.8rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* Section H: Complete Q&A Audit Log */
+.doc-qa-container {
+  background: var(--doc-bg-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: var(--doc-shadow-sm);
+}
+
+.doc-qa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.doc-qa-item {
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  padding: 0.85rem 1.25rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.doc-qa-q {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.doc-qa-a {
+  font-size: 0.95rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.doc-source-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+/* Section I: Clinician Notes & Sign-Off Actions */
+.doc-actions-card {
+  background: var(--doc-bg-surface);
+  border: 2px solid var(--doc-primary);
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: var(--doc-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.doc-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 0.85rem;
+  border: 1px solid var(--doc-border-strong);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  resize: vertical;
+}
+
+.doc-textarea:focus {
+  border-color: var(--doc-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.doc-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.doc-btn-submit {
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s;
+}
+
+.doc-btn-submit:hover {
+  background: #15803d;
+  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.25);
+}
+
+/* -------------------------------------------------------------
+   6. Physician Login Screen
+   ------------------------------------------------------------- */
+.doc-login-wrap {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  padding: 2rem;
+}
+
+.doc-login-card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.25);
+}
+
+.doc-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.doc-login-logo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem auto;
+  background: linear-gradient(135deg, #2563eb, #0d9488);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.85rem;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.doc-login-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.doc-login-sub {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.doc-form-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.doc-form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.doc-form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.doc-form-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.doc-btn-login {
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  transition: background 0.15s;
+}
+
+.doc-btn-login:hover {
+  background: #1d4ed8;
+}
+
+.doc-demo-login-btn {
+  width: 100%;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s;
+}
+
+.doc-demo-login-btn:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+}
+
+/* Empty, Loading & Error States */
+.doc-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--doc-border);
+}
+
+.doc-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+
+.doc-state-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--doc-text-main);
+  margin-bottom: 0.5rem;
+}
+
+.doc-state-desc {
+  font-size: 0.95rem;
+  color: var(--doc-text-muted);
+  max-width: 480px;
+}

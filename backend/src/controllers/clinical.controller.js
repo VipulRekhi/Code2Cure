@@ -57,11 +57,31 @@ export const clinicalController = {
    */
   async createSession(req, res, next) {
     try {
-      const { patientId = null, language = 'mr', opdMode = 'GENERAL' } = req.body;
+      const { patientId = null, encounterId = null, language = 'mr', opdMode = 'GENERAL' } = req.body;
+
+      // Check if encounter exists, resolve patient and opdMode from encounter
+      let resolvedPatientId = null;
+      let resolvedEncounterId = null;
+      let effectiveOpdMode = opdMode;
+
+      if (encounterId) {
+        try {
+          const encounter = await prisma.encounter.findUnique({
+            where: { id: encounterId },
+            include: { patient: true },
+          });
+          if (encounter) {
+            resolvedEncounterId = encounter.id;
+            resolvedPatientId = encounter.patientId;
+            effectiveOpdMode = encounter.opdMode || opdMode;
+          }
+        } catch (e) {
+          // Keep null if encounter lookup fails
+        }
+      }
 
       // Check if patient exists in DB, otherwise allow anonymous/walk-in session
-      let resolvedPatientId = null;
-      if (patientId) {
+      if (!resolvedPatientId && patientId) {
         try {
           const existingPatient = await prisma.patient.findUnique({ where: { id: patientId } });
           if (existingPatient) resolvedPatientId = existingPatient.id;
@@ -73,9 +93,10 @@ export const clinicalController = {
       // Persist session to database (Supabase / PostgreSQL)
       const dbSession = await prisma.clinicalSession.create({
         data: {
+          encounterId: resolvedEncounterId,
           patientId: resolvedPatientId,
           language,
-          opdMode,
+          opdMode: effectiveOpdMode,
           status: 'IN_PROGRESS',
         },
       });
@@ -94,6 +115,8 @@ export const clinicalController = {
         success: true,
         data: {
           sessionId: dbSession.id,
+          encounterId: dbSession.encounterId,
+          patientId: dbSession.patientId,
           language: dbSession.language,
           opdMode: dbSession.opdMode,
           status: dbSession.status,
@@ -782,6 +805,17 @@ export const clinicalController = {
         where: { id },
         data: { status: 'COMPLETED' },
       });
+
+      // Update linked OPD Encounter if present
+      if (dbSession.encounterId) {
+        await prisma.encounter.update({
+          where: { id: dbSession.encounterId },
+          data: {
+            status: 'WAITING',
+            completedAt: new Date(),
+          },
+        }).catch(() => {});
+      }
 
       res.status(200).json({
         success: true,

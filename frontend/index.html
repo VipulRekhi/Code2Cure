@@ -19,8 +19,10 @@
     <link rel="stylesheet" href="css/kiosk.css" />
     <link rel="stylesheet" href="css/accessibility.css" />
     <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/doctorPortal.css" />
   </head>
   <body>
+    <!-- 1. Patient Kiosk Container -->
     <div id="kiosk-app" role="application" aria-label="MediKiosk Patient Intake System">
       <!-- 1. Header (Rendered dynamically) -->
       <header id="kiosk-header" class="kiosk-header" role="banner"></header>
@@ -34,6 +36,9 @@
       <!-- 4. Footer Action Bar (Rendered dynamically) -->
       <footer id="kiosk-footer" class="kiosk-footer" role="contentinfo"></footer>
     </div>
+
+    <!-- 2. Doctor Clinical Portal Container (Phase 10) -->
+    <div id="doctor-app" style="display: none;" role="application" aria-label="MediKiosk Doctor Clinical Portal"></div>
 
     <!-- Global Modal Mount Point (Help, Confirmation) -->
     <div id="modal-container" aria-live="polite"></div>

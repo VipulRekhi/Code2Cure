@@ -377,14 +377,15 @@ export function buildCanonicalClinicalSummary(sessionState, documents = [], opti
 
       symptoms.push(symEntry);
 
+      const pKeyStr = String(primaryConcernKey || '');
       const isPrimaryConcernAttr =
-        (primaryConcernKey?.includes('knee') && fact.concept.includes('knee')) ||
-        (primaryConcernKey?.includes('chest') && fact.concept.includes('chest')) ||
-        (primaryConcernKey?.includes('shoulder') && fact.concept.includes('shoulder')) ||
-        (primaryConcernKey?.includes('stomach') && fact.concept.includes('abdominal')) ||
-        (primaryConcernKey?.includes('diarrhea') && fact.concept.includes('diarrhea')) ||
-        (primaryConcernKey?.includes('fever') && fact.concept.includes('fever')) ||
-        (primaryConcernKey?.includes('headache') && fact.concept.includes('headache'));
+        (pKeyStr.includes('knee') && fact.concept.includes('knee')) ||
+        (pKeyStr.includes('chest') && fact.concept.includes('chest')) ||
+        (pKeyStr.includes('shoulder') && fact.concept.includes('shoulder')) ||
+        (pKeyStr.includes('stomach') && fact.concept.includes('abdominal')) ||
+        (pKeyStr.includes('diarrhea') && fact.concept.includes('diarrhea')) ||
+        (pKeyStr.includes('fever') && fact.concept.includes('fever')) ||
+        (pKeyStr.includes('headache') && fact.concept.includes('headache'));
 
       const isNonSymptom =
         (fact.concept === 'symptom.injury' && (fact.attribute === 'mechanism' || fact.attribute === 'joint')) ||
@@ -649,7 +650,9 @@ export function buildCanonicalClinicalSummary(sessionState, documents = [], opti
   if (isAyushSession || hasAyushFacts || hasAyushResponses) {
     const parseAyushParam = (questionId, factConcept, factAttr, paramName) => {
       const resp = responses.find((r) => r.questionId === questionId);
-      const fact = collectedFacts[`${factConcept}.${factAttr}`];
+      const fact = collectedFacts[`${factConcept}.${factAttr}`] ||
+        collectedFacts[`${factConcept}.${factAttr}.${factAttr}`] ||
+        Object.values(collectedFacts).find((f) => (f.concept?.endsWith(factAttr) || f.attribute === factAttr));
       const val = resp?.normalizedValue ?? fact?.value ?? null;
       let status = 'NOT_PROVIDED';
       if (val === 'unknown' || resp?.status === 'UNKNOWN') {

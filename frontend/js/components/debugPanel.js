@@ -34,7 +34,22 @@ export function renderDebugPanel() {
 
   return `
     <!-- Floating discreet badge -->
-    <div style="position: fixed; bottom: 8px; right: 12px; z-index: 99999;">
+    <div style="position: fixed; bottom: 8px; right: 12px; z-index: 99999; display: flex; gap: 6px; align-items: center;">
+      <a href="#/doctor" style="
+        background: #1e3a8a;
+        color: #ffffff;
+        border: 1px solid #3b82f6;
+        border-radius: 9999px;
+        padding: 4px 10px;
+        font-family: monospace;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      ">
+        🩺 Doctor Portal
+      </a>
       <button id="debug-toggle-badge" onclick="window.__toggleMediKioskDebug && window.__toggleMediKioskDebug()" style="
         background: #0f172a;
         color: #94a3b8;
@@ -47,7 +62,7 @@ export function renderDebugPanel() {
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
       ">
-        ${isExpanded ? '✕ Close Debug' : '🩺 Debug'}
+        ${isExpanded ? '✕ Close Debug' : '⚙️ Trace'}
       </button>
 
       <!-- Expandable Debug Body -->

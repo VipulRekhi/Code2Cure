@@ -10,9 +10,34 @@ import { sessionService } from './services/sessionService.js';
 import { api } from './api.js';
 import { openModal } from './components/modal.js';
 import { t } from './i18n.js';
+import { initDoctorState } from './doctor/doctorState.js';
+import { initDoctorShell } from './doctor/doctorShell.js';
+
+let doctorShellInitialized = false;
+
+function handleModeSwitch() {
+  const isDoctorMode = window.location.hash.startsWith('#/doctor') || window.location.hash.startsWith('#doctor');
+  const kioskEl = document.getElementById('kiosk-app');
+  const doctorEl = document.getElementById('doctor-app');
+
+  if (isDoctorMode) {
+    if (kioskEl) kioskEl.style.display = 'none';
+    if (doctorEl) {
+      doctorEl.style.display = 'flex';
+      if (!doctorShellInitialized) {
+        initDoctorState();
+        initDoctorShell(doctorEl);
+        doctorShellInitialized = true;
+      }
+    }
+  } else {
+    if (doctorEl) doctorEl.style.display = 'none';
+    if (kioskEl) kioskEl.style.display = 'flex';
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[MediKiosk] Bootstrapping Patient Kiosk Frontend (Phase 2)...');
+  console.log('[MediKiosk] Bootstrapping MediKiosk Frontend (Patient Kiosk & Doctor Portal)...');
 
   // 1. Accessibility initialization
   a11y.init();
@@ -27,8 +52,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // 4. Inactivity Monitor (Section 28)
+  // 4. Portal Mode Switcher (Kiosk vs Doctor Workstation)
+  handleModeSwitch();
+  window.addEventListener('hashchange', handleModeSwitch);
+
+  // 5. Inactivity Monitor (Patient Kiosk Only)
   sessionService.startMonitoring((remainingSeconds) => {
+    const isDoctorMode = window.location.hash.startsWith('#/doctor') || window.location.hash.startsWith('#doctor');
+    if (isDoctorMode) return; // Do not auto-reset doctor workstation
+
     openModal({
       title: '⏰ Are you still there?',
       contentHtml: `
@@ -41,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // 5. Backend Connection Check (Section 45)
+  // 6. Backend Connection Check
   try {
     const health = await api.checkHealth();
     if (health?.success && health?.data?.status === 'ok') {

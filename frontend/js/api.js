@@ -1,9 +1,10 @@
 /**
- * Centralized API Client (Section 45)
+ * Centralized API Client (Section 45 & Phase 10 Master Integration)
  * Communicates with the Express backend foundation.
+ * Production configurable for Vercel/cloud deployments without hardcoded hostnames.
  */
 
-const API_BASE = '/api';
+const API_BASE = (typeof window !== 'undefined' && (window.__MEDIKIOSK_API_URL__ || window.ENV?.VITE_API_URL)) || '/api';
 
 export const api = {
   async checkHealth() {
@@ -32,14 +33,103 @@ export const api = {
   },
 
   // ----------------------------------------------------
-  // Phase 3: Clinical Question Engine Endpoints (Section 41)
+  // Phase 10: Institutional Hierarchy & Encounters
   // ----------------------------------------------------
-  async createClinicalSession({ patientId = null, language = 'mr', opdMode = 'GENERAL' }) {
+  async getHospitals() {
+    try {
+      const response = await fetch(`${API_BASE}/hospitals`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to fetch hospitals:', error);
+      return { success: false, error: error.message, data: [] };
+    }
+  },
+
+  async getDepartments(hospitalId) {
+    try {
+      const response = await fetch(`${API_BASE}/hospitals/${hospitalId}/departments`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to fetch departments:', error);
+      return { success: false, error: error.message, data: [] };
+    }
+  },
+
+  async getDoctors(departmentId) {
+    try {
+      const response = await fetch(`${API_BASE}/departments/${departmentId}/doctors`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to fetch doctors:', error);
+      return { success: false, error: error.message, data: [] };
+    }
+  },
+
+  async createPatient(patientData) {
+    try {
+      const response = await fetch(`${API_BASE}/patients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patientData),
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to register/update patient:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async searchPatients(query) {
+    try {
+      const response = await fetch(`${API_BASE}/patients/search?q=${encodeURIComponent(query)}`);
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Patient search failed:', error);
+      return { success: false, error: error.message, data: [] };
+    }
+  },
+
+  async getPatientById(id) {
+    try {
+      const response = await fetch(`${API_BASE}/patients/${id}`);
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async createEncounter(encounterData) {
+    try {
+      const response = await fetch(`${API_BASE}/encounters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encounterData),
+      });
+      return await response.json();
+    } catch (error) {
+      console.warn('[API] Failed to create encounter:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getEncounter(id) {
+    try {
+      const response = await fetch(`${API_BASE}/encounters/${id}`);
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ----------------------------------------------------
+  // Phase 3-9: Clinical Question Engine Endpoints
+  // ----------------------------------------------------
+  async createClinicalSession({ patientId = null, encounterId = null, language = 'mr', opdMode = 'GENERAL' }) {
     try {
       const response = await fetch(`${API_BASE}/clinical/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId, language, opdMode }),
+        body: JSON.stringify({ patientId, encounterId, language, opdMode }),
       });
       return await response.json();
     } catch (error) {
@@ -218,6 +308,3 @@ export const api = {
     }
   },
 };
-
-
-
